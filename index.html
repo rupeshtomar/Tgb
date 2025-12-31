@@ -440,6 +440,10 @@ document.querySelectorAll('.navbtn').forEach(b=>{
   b.classList.add('active');
   document.getElementById(b.dataset.target).classList.add('active');
  };
+<div class="theme-toggle" onclick="localStorage.removeItem('osint_password_hash');location.reload();">
+  🔁 Reset password / Logout
+</div>
+
 });
 <div class="theme-toggle" onclick="localStorage.removeItem('osint_password_hash');location.reload();">
   🚪 Logout / Reset password
