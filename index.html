@@ -259,10 +259,13 @@
 
             <div x-show="activeTab === 'geo'" class="h-full flex flex-col relative">
                 <div class="absolute top-4 left-4 z-[999] flex gap-2 w-full max-w-sm">
-                    <input type="text" x-model="ipInput" @keydown.enter="lookupIp" placeholder="IP Address..." class="panel w-full px-4 py-2 rounded shadow-xl focus:outline-none border border-accent">
+                    <input type="text" x-model="ipInput" @keydown.enter="lookupIp" placeholder="IP Address or City..." class="panel w-full px-4 py-2 rounded shadow-xl focus:outline-none border border-accent">
                     <button @click="lookupIp" class="btn-accent px-4 py-2 rounded shadow-xl"><i class="ph-bold ph-crosshair"></i></button>
                 </div>
                 <div id="map"></div>
+                <div class="absolute bottom-1 right-1 z-[999] bg-white/80 px-2 rounded text-[10px] text-black">
+                    Map Data &copy; Google
+                </div>
             </div>
 
             <div x-show="activeTab === 'media'" class="p-6 h-full overflow-y-auto">
@@ -317,7 +320,6 @@
             db: null,
 
             // Data Models
-            // KEY FIX: Ensure this is always an array to prevent "length" errors
             savedNotes: JSON.parse(localStorage.getItem('vantage_notes') || '[]'),
             currentNote: { id: null, title: '', content: '', updatedAt: null },
             
@@ -340,7 +342,6 @@
             switchTab(tab) {
                 this.activeTab = tab;
                 if (tab === 'geo') {
-                    // Slight delay to allow DOM to render before Map initializes
                     setTimeout(() => {
                         if (!this.map) this.initMap();
                         else this.map.invalidateSize();
@@ -384,7 +385,6 @@
             quickCapture() {
                 if (!this.quickUrl) return;
                 
-                // Create the note object
                 const newNote = {
                     id: Date.now().toString(),
                     title: "Capture: " + this.quickUrl.substring(0, 20),
@@ -392,14 +392,10 @@
                     updatedAt: new Date().toISOString()
                 };
                 
-                // KEY FIX: Use spread syntax to trigger reactivity updates instantly
+                // Force Update
                 this.savedNotes = [newNote, ...this.savedNotes];
-                
-                // Save and reset
                 this.persist();
                 this.quickUrl = '';
-                
-                // Notification
                 alert("Captured to Notes!");
             },
 
@@ -413,7 +409,6 @@
                 this.currentNote.updatedAt = new Date().toISOString();
 
                 const idx = this.savedNotes.findIndex(n => n.id === this.currentNote.id);
-                // KEY FIX: Ensure reactivity when saving notes
                 if (idx > -1) {
                     this.savedNotes[idx] = {...this.currentNote};
                 } else {
@@ -452,10 +447,15 @@
 
             renderMarkdown(text) { return marked.parse(text || ''); },
 
-            // --- MAP ---
+            // --- MAP (Google Hybrid Simulation) ---
             initMap() {
                 this.map = L.map('map').setView([20, 0], 2);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(this.map);
+                
+                // Google Hybrid Tile Layer
+                L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
+                    maxZoom: 20,
+                    subdomains:['mt0','mt1','mt2','mt3']
+                }).addTo(this.map);
             },
 
             async lookupIp() {
