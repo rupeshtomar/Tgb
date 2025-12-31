@@ -28,6 +28,9 @@
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        // Dynamic colors handled via CSS variables in Alpine
                     }
                 }
             }
@@ -35,6 +38,7 @@
     </script>
 
     <style>
+        /* Base Theme Variables */
         :root {
             --bg-main: #0f172a;
             --bg-panel: #1e293b;
@@ -49,23 +53,25 @@
         .theme-light { --bg-main: #f1f5f9; --bg-panel: #ffffff; --text-main: #0f172a; --text-muted: #64748b; --accent: #2563eb; --border: #e2e8f0; }
         .theme-terminal { --bg-main: #000000; --bg-panel: #0c0c0c; --text-main: #22c55e; --text-muted: #15803d; --accent: #22c55e; --border: #14532d; font-family: 'JetBrains Mono', monospace; }
 
-        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; transition: 0.3s; }
+        body { background-color: var(--bg-main); color: var(--text-main); transition: background 0.3s, color 0.3s; }
         .panel { background-color: var(--bg-panel); border: 1px solid var(--border); }
         .btn-accent { background-color: var(--accent); color: white; }
+        .text-accent { color: var(--accent); }
+        .border-accent { border-color: var(--accent); }
+
+        /* Map Fix */
+        #map { z-index: 1; height: 100%; width: 100%; background: #0f172a; }
         
-        #map { height: 100%; width: 100%; z-index: 1; background: #0f172a; }
-        
-        /* Utility */
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
         [x-cloak] { display: none !important; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex text-sm" x-data="app()">
 
-    <aside class="w-16 md:w-64 flex-shrink-0 flex flex-col border-r panel z-20">
+    <aside class="w-16 md:w-64 flex-shrink-0 flex flex-col border-r panel transition-all z-20">
         <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b" style="border-color: var(--border)">
             <i class="ph-fill ph-radar text-2xl text-accent"></i>
             <span class="hidden md:block ml-3 font-bold text-lg tracking-wider">VANTAGE</span>
@@ -73,9 +79,9 @@
 
         <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-2">
             <template x-for="item in navItems" :key="item.id">
-                <button @click="activeTab = item.id" 
-                        class="w-full flex items-center px-2 md:px-3 py-3 rounded-lg transition-all relative"
-                        :class="activeTab === item.id ? 'bg-white/10 text-accent' : 'text-muted hover:bg-white/5'">
+                <button @click="setActiveTab(item.id)" 
+                        class="w-full flex items-center px-2 md:px-3 py-3 rounded-lg transition-all group relative"
+                        :class="activeTab === item.id ? 'bg-opacity-10 bg-blue-500 text-accent' : 'text-muted hover:bg-opacity-5 hover:bg-white'">
                     <i :class="item.icon" class="text-xl"></i>
                     <span class="hidden md:block ml-3 font-medium" x-text="item.label"></span>
                     <div x-show="activeTab === item.id" class="absolute left-0 top-2 bottom-2 w-1 rounded-r-full btn-accent"></div>
@@ -84,18 +90,13 @@
         </nav>
 
         <div class="p-4 border-t" style="border-color: var(--border)">
-            <div x-show="user" class="flex items-center gap-3 w-full p-2 rounded bg-white/5">
-                <img :src="user?.photoURL" class="w-8 h-8 rounded-full border border-accent">
+            <button @click="showSettings = true" class="flex items-center gap-3 w-full p-2 rounded hover:bg-opacity-5 hover:bg-white transition">
+                <img :src="user?.photoURL || 'https://ui-avatars.com/api/?name=Agent'" class="w-8 h-8 rounded-full border border-accent">
                 <div class="hidden md:block text-left overflow-hidden">
-                    <div class="font-bold truncate" x-text="user?.displayName"></div>
-                    <div class="text-xs text-green-400">● Secure Uplink</div>
+                    <div class="font-bold truncate" x-text="user ? user.displayName : 'Guest Agent'"></div>
+                    <div class="text-xs opacity-60" x-text="user ? 'Online' : 'Offline Mode'"></div>
                 </div>
-            </div>
-            <div x-show="!user" class="text-center">
-                <button @click="googleLogin" class="w-full btn-accent py-2 rounded font-bold flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-google-logo"></i> <span class="hidden md:inline">Login</span>
-                </button>
-            </div>
+            </button>
         </div>
     </aside>
 
@@ -108,15 +109,15 @@
             </h2>
             
             <div class="flex items-center gap-4">
-                <select x-model="currentTheme" @change="applyTheme()" class="panel px-3 py-1 rounded text-xs focus:outline-none cursor-pointer">
+                <select x-model="currentTheme" @change="applyTheme()" class="panel px-3 py-1 rounded text-xs focus:outline-none">
                     <option value="theme-cyber">Cyberpunk</option>
                     <option value="theme-light">Corporate</option>
                     <option value="theme-terminal">Terminal</option>
                 </select>
                 
-                <div class="flex items-center gap-2 text-xs" :class="dbConnected ? 'text-green-500' : 'text-orange-500'">
-                    <i :class="dbConnected ? 'ph-fill ph-cloud-check' : 'ph-fill ph-cloud-slash'"></i>
-                    <span class="hidden md:inline" x-text="dbConnected ? 'Cloud Sync Active' : 'Local Storage Only'"></span>
+                <div class="flex items-center gap-2 text-xs" :class="dbConnected ? 'text-green-500' : 'text-red-500'">
+                    <i class="ph-fill ph-cloud-check"></i>
+                    <span class="hidden md:inline" x-text="dbConnected ? 'Cloud Sync Active' : 'Local Only'"></span>
                 </div>
             </div>
         </header>
@@ -124,67 +125,54 @@
         <div class="flex-1 overflow-hidden relative bg-opacity-50">
             
             <div x-show="activeTab === 'dashboard'" class="p-6 h-full overflow-y-auto space-y-6 animate-fade-in">
-                <div x-show="!user" class="p-4 rounded border border-orange-500/30 bg-orange-500/10 flex justify-between items-center">
-                    <div>
-                        <h3 class="font-bold text-orange-400">⚠️ Offline Mode</h3>
-                        <p class="text-xs opacity-70">Login to enable Cloud Sync (Google Drive/Firestore) and cross-device access.</p>
-                    </div>
-                    <button @click="googleLogin" class="px-4 py-2 bg-orange-600 text-white rounded text-xs font-bold hover:bg-orange-500">Connect</button>
+                <div x-show="!user" class="p-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 mb-6">
+                    <h3 class="font-bold text-yellow-500 mb-2">⚠️ Authentication Required for Cloud Sync</h3>
+                    <p class="mb-4 text-opacity-80">Configure Firebase in Settings to enable Real Google Login and Drive/Database syncing.</p>
+                    <button @click="showSettings = true" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500 transition">Configure Keys</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="panel p-6 rounded-xl border-l-4 border-accent">
-                        <div class="text-xs uppercase font-bold opacity-60">Intelligence Vault</div>
-                        <div class="text-4xl font-bold mt-2" x-text="savedNotes.length">0</div>
-                        <div class="text-xs opacity-60 mt-1">Saved Investigations</div>
+                    <div class="panel p-5 rounded-xl border-l-4 border-accent">
+                        <div class="text-xs uppercase font-bold opacity-60">Active Intelligence</div>
+                        <div class="text-3xl font-bold mt-1" x-text="savedNotes.length">0</div>
+                        <div class="text-xs opacity-60 mt-1">Documents in Vault</div>
                     </div>
                     
-                    <div class="md:col-span-2 panel p-6 rounded-xl flex flex-col justify-center">
-                        <h3 class="font-bold mb-3 flex items-center gap-2"><i class="ph-bold ph-lightning"></i> Quick Tools</h3>
+                    <div class="md:col-span-2 panel p-5 rounded-xl">
+                        <h3 class="font-bold mb-4 flex items-center gap-2"><i class="ph-bold ph-newspaper"></i> Quick Capture</h3>
                         <div class="flex gap-2">
-                            <input type="text" x-model="quickSearch" @keydown.enter="openToolLink" placeholder="Enter Username, Email, or Domain..." class="flex-1 bg-transparent border rounded px-4 py-3 focus:border-accent focus:outline-none" style="border-color: var(--border)">
-                            <button @click="openToolLink" class="btn-accent px-6 rounded font-bold">Scan</button>
-                        </div>
-                        <div class="flex gap-2 mt-3 text-xs opacity-60">
-                            <span>Direct Search:</span>
-                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='startpage'; openToolLink()">Startpage</span> • 
-                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='whois'; openToolLink()">Whois</span> • 
-                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='whatsmyname'; openToolLink()">WhatsMyName</span>
+                            <input type="text" x-model="quickUrl" placeholder="Paste URL to investigate..." class="flex-1 bg-transparent border rounded px-4 py-2 focus:border-accent focus:outline-none" style="border-color: var(--border)">
+                            <button @click="analyzeUrl" class="btn-accent px-4 py-2 rounded font-medium">Analyze</button>
                         </div>
                     </div>
                 </div>
 
-                <h3 class="font-bold text-lg mt-4 border-b pb-2" style="border-color: var(--border)">Recent Case Files</h3>
+                <h3 class="font-bold text-lg mt-4">Recent Findings</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <template x-for="note in savedNotes.slice(0, 6)" :key="note.id">
-                        <div @click="loadNote(note)" class="panel p-4 rounded-lg cursor-pointer hover:border-accent transition group relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-1 h-full bg-accent opacity-0 group-hover:opacity-100 transition"></div>
+                    <template x-for="note in savedNotes.slice(0,4)" :key="note.id">
+                        <div @click="loadNote(note)" class="panel p-4 rounded-lg cursor-pointer hover:border-accent transition group">
                             <div class="flex justify-between items-start">
-                                <h4 class="font-bold truncate" x-text="note.title || 'Untitled Case'"></h4>
+                                <h4 class="font-bold truncate" x-text="note.title || 'Untitled'"></h4>
                                 <span class="text-xs opacity-50" x-text="new Date(note.updatedAt).toLocaleDateString()"></span>
                             </div>
-                            <p class="text-xs mt-2 opacity-60 line-clamp-2 font-mono" x-text="note.content ? note.content.substring(0, 120) : 'No content...'"></p>
+                            <p class="text-xs mt-2 opacity-60 line-clamp-2" x-text="note.content.substring(0, 100)"></p>
                         </div>
                     </template>
-                    <div x-show="savedNotes.length === 0" class="col-span-2 text-center py-10 opacity-40">
-                        <i class="ph-duotone ph-folder-open text-4xl mb-2"></i>
-                        <p>Vault is empty. Start a new investigation.</p>
-                    </div>
                 </div>
             </div>
 
             <div x-show="activeTab === 'notes'" class="h-full flex flex-col md:flex-row">
                 <div class="w-full md:w-64 panel border-r flex flex-col">
                     <div class="p-3 border-b" style="border-color: var(--border)">
-                        <button @click="createNewNote" class="w-full py-2 btn-accent rounded flex items-center justify-center gap-2 font-bold shadow-lg">
-                            <i class="ph-bold ph-plus"></i> New Case
+                        <button @click="createNewNote" class="w-full py-2 btn-accent rounded flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-plus"></i> New Investigation
                         </button>
                     </div>
                     <div class="flex-1 overflow-y-auto">
                         <template x-for="note in savedNotes" :key="note.id">
-                            <div @click="loadNote(note)" class="p-3 border-b cursor-pointer hover:bg-white/5 transition" 
-                                 :class="currentNote.id === note.id ? 'bg-white/10 border-l-4 border-l-accent' : 'opacity-70'" style="border-color: var(--border)">
-                                <div class="font-bold text-sm truncate" x-text="note.title || 'Untitled Case'"></div>
+                            <div @click="loadNote(note)" class="p-3 border-b cursor-pointer hover:bg-white/5" 
+                                 :class="currentNote.id === note.id ? 'bg-white/10 border-l-4 border-l-accent' : ''" style="border-color: var(--border)">
+                                <div class="font-bold text-sm truncate" x-text="note.title || 'Untitled'"></div>
                                 <div class="text-xs opacity-50" x-text="new Date(note.updatedAt).toLocaleTimeString()"></div>
                             </div>
                         </template>
@@ -192,90 +180,81 @@
                 </div>
                 
                 <div class="flex-1 flex flex-col h-full bg-opacity-50">
-                    <div class="p-4 border-b flex gap-4 items-center" style="border-color: var(--border)">
-                        <input type="text" x-model="currentNote.title" placeholder="Case Title..." class="flex-1 bg-transparent text-lg font-bold focus:outline-none">
-                        <div class="flex gap-2">
-                            <button @click="downloadNote" class="p-2 hover:text-accent" title="Download Markdown"><i class="ph-bold ph-download-simple text-lg"></i></button>
-                            <button @click="saveCurrentNote" class="p-2 text-accent" title="Save"><i class="ph-fill ph-floppy-disk text-lg"></i></button>
-                            <button @click="deleteNote" class="p-2 hover:text-red-500" title="Delete"><i class="ph-bold ph-trash text-lg"></i></button>
-                        </div>
+                    <div class="p-4 border-b flex gap-4" style="border-color: var(--border)">
+                        <input type="text" x-model="currentNote.title" placeholder="Investigation Title..." class="flex-1 bg-transparent text-lg font-bold focus:outline-none">
+                        <button @click="downloadNote" class="opacity-60 hover:opacity-100" title="Download as File"><i class="ph-bold ph-download-simple text-xl"></i></button>
+                        <button @click="saveCurrentNote" class="text-accent font-bold" title="Save to Cloud"><i class="ph-fill ph-floppy-disk text-xl"></i></button>
+                        <button @click="deleteNote" class="text-red-500 hover:text-red-400"><i class="ph-bold ph-trash text-xl"></i></button>
                     </div>
-                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 h-full overflow-hidden">
-                        <textarea x-model="currentNote.content" class="p-6 bg-transparent resize-none focus:outline-none font-mono text-sm leading-relaxed border-r h-full" 
-                                  placeholder="# Case Notes&#10;&#10;Use Markdown. Paste images/links here..." style="border-color: var(--border)"></textarea>
-                        <div class="hidden md:block p-6 prose prose-invert prose-sm overflow-y-auto h-full" x-html="renderMarkdown(currentNote.content)"></div>
+                    <div class="flex-1 grid grid-cols-2">
+                        <textarea x-model="currentNote.content" class="p-6 bg-transparent resize-none focus:outline-none font-mono text-sm leading-relaxed border-r" 
+                                  placeholder="# Case Notes&#10;&#10;Paste images or text here..." style="border-color: var(--border)"></textarea>
+                        <div class="p-6 prose prose-invert prose-sm overflow-y-auto" x-html="renderMarkdown(currentNote.content)"></div>
                     </div>
                 </div>
             </div>
 
             <div x-show="activeTab === 'geo'" class="h-full flex flex-col relative">
-                <div class="absolute top-4 left-4 md:left-14 z-[999] flex gap-2 w-full max-w-sm">
-                    <input type="text" x-model="ipInput" @keydown.enter="lookupIp" placeholder="IP Address (e.g. 8.8.8.8)" class="panel w-full px-4 py-2 rounded shadow-xl focus:outline-none border border-accent text-xs md:text-sm">
-                    <button @click="lookupIp" class="btn-accent px-4 py-2 rounded shadow-xl"><i class="ph-bold ph-crosshair"></i></button>
+                <div class="absolute top-4 left-14 z-[999] flex gap-2 w-full max-w-md">
+                    <input type="text" x-model="ipInput" @keydown.enter="lookupIp" placeholder="Enter IP Address or Domain..." class="panel w-full px-4 py-2 rounded shadow-lg focus:outline-none border border-accent">
+                    <button @click="lookupIp" class="btn-accent px-4 py-2 rounded shadow-lg">Locate</button>
                 </div>
                 <div id="map"></div>
-                
-                <div x-show="ipData" class="absolute bottom-6 left-6 z-[999] panel p-4 rounded-lg shadow-2xl border border-accent w-64 text-sm space-y-2 animate-fade-in">
-                    <div class="font-bold text-accent border-b pb-1 mb-2 flex justify-between">
-                        <span>Target Intel</span>
-                        <button @click="ipData=null"><i class="ph-bold ph-x"></i></button>
-                    </div>
-                    <div class="grid grid-cols-3 gap-1 text-xs">
-                        <div class="opacity-50">IP:</div><div class="col-span-2 font-mono" x-text="ipData?.ip"></div>
-                        <div class="opacity-50">Loc:</div><div class="col-span-2" x-text="ipData?.city + ', ' + ipData?.country_name"></div>
-                        <div class="opacity-50">ISP:</div><div class="col-span-2" x-text="ipData?.org"></div>
-                    </div>
+                <div x-show="ipData" class="absolute bottom-6 left-6 z-[999] panel p-4 rounded-lg shadow-xl border border-accent w-64 text-sm space-y-2">
+                    <div class="font-bold text-accent border-b pb-1 mb-2">Target Data</div>
+                    <div class="flex justify-between"><span>IP:</span> <span class="font-mono" x-text="ipData?.ip"></span></div>
+                    <div class="flex justify-between"><span>City:</span> <span x-text="ipData?.city"></span></div>
+                    <div class="flex justify-between"><span>ISP:</span> <span x-text="ipData?.org"></span></div>
+                    <div class="flex justify-between"><span>Timezone:</span> <span x-text="ipData?.timezone"></span></div>
                 </div>
             </div>
 
             <div x-show="activeTab === 'media'" class="p-6 h-full overflow-y-auto">
-                <div class="max-w-5xl mx-auto space-y-6">
-                    <div class="panel border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:bg-white/5 transition relative" style="border-color: var(--border)">
-                        <input type="file" @change="handleImageUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*">
-                        <i class="ph-duotone ph-aperture text-5xl mb-4 text-accent"></i>
-                        <h3 class="text-2xl font-bold">Image Intelligence</h3>
-                        <p class="text-muted mt-2">Drop image to extract EXIF, GPS, and Device fingerprints.</p>
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div class="panel border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:bg-white/5 transition" style="border-color: var(--border)">
+                        <input type="file" @change="handleImageUpload" class="hidden" id="exifUpload" accept="image/*">
+                        <label for="exifUpload" class="cursor-pointer block">
+                            <i class="ph-duotone ph-image text-4xl mb-4 text-accent"></i>
+                            <h3 class="text-xl font-bold">Drop Image for Forensic Analysis</h3>
+                            <p class="text-muted">Extracts GPS, Device Info, and Timestamps</p>
+                        </label>
                     </div>
 
                     <div x-show="exifData" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                         <div class="panel p-4 rounded-xl">
-                            <img :src="previewImage" class="w-full rounded-lg shadow-lg">
+                            <img :src="previewImage" class="w-full rounded-lg">
                         </div>
-                        <div class="panel p-6 rounded-xl overflow-hidden">
-                            <h3 class="font-bold text-accent text-lg mb-4 border-b pb-2 border-white/10">Metadata Report</h3>
-                            <div class="space-y-2 text-sm overflow-y-auto max-h-[400px]">
-                                <template x-for="(val, key) in exifData" :key="key">
-                                    <div class="flex justify-between py-1 border-b border-white/5">
-                                        <span class="text-muted capitalize" x-text="key"></span>
-                                        <span class="font-mono text-right truncate pl-4 text-accent" x-text="val"></span>
-                                    </div>
-                                </template>
-                            </div>
+                        <div class="panel p-6 rounded-xl space-y-4">
+                            <h3 class="font-bold text-accent text-lg">Metadata Report</h3>
+                            <template x-for="(val, key) in exifData" :key="key">
+                                <div class="flex justify-between border-b border-white/5 pb-1">
+                                    <span class="text-muted capitalize" x-text="key"></span>
+                                    <span class="font-mono text-xs max-w-[200px] truncate" x-text="val"></span>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div x-show="activeTab === 'dict'" class="p-6 h-full flex flex-col items-center pt-20">
-                <div class="w-full max-w-2xl">
-                    <h1 class="text-3xl font-bold mb-6 text-center">Terminology Reference</h1>
-                    <div class="relative group">
-                        <input type="text" x-model="dictQuery" @keydown.enter="lookupTerm" placeholder="Enter term..." class="w-full bg-transparent text-2xl border-b-2 py-3 text-center focus:outline-none focus:border-accent transition-colors" style="border-color: var(--border)">
-                        <button @click="lookupTerm" class="absolute right-0 top-4 text-accent hover:scale-110 transition"><i class="ph-bold ph-magnifying-glass text-2xl"></i></button>
+                <div class="w-full max-w-2xl text-center">
+                    <h1 class="text-3xl font-bold mb-6">Term Reference</h1>
+                    <div class="relative">
+                        <input type="text" x-model="dictQuery" @keydown.enter="lookupTerm" placeholder="Search term..." class="w-full bg-transparent text-2xl border-b-2 py-2 text-center focus:outline-none focus:border-accent" style="border-color: var(--border)">
+                        <button @click="lookupTerm" class="absolute right-0 top-2 text-accent"><i class="ph-bold ph-arrow-right text-2xl"></i></button>
                     </div>
                     
-                    <div x-show="dictResult" class="mt-10 panel p-8 rounded-xl animate-fade-in shadow-2xl border border-white/5">
-                        <div class="flex justify-between items-baseline">
-                            <h2 class="text-3xl font-bold text-accent" x-text="dictResult?.word"></h2>
-                            <span class="font-mono opacity-50 text-lg" x-text="dictResult?.phonetic"></span>
-                        </div>
+                    <div x-show="dictResult" class="mt-10 text-left panel p-8 rounded-xl animate-fade-in">
+                        <h2 class="text-2xl font-bold text-accent mb-2" x-text="dictResult?.word"></h2>
+                        <div class="text-sm italic opacity-60 mb-4" x-text="dictResult?.phonetic"></div>
                         
                         <template x-for="meaning in dictResult?.meanings" :key="meaning.partOfSpeech">
-                            <div class="mt-6">
-                                <span class="px-2 py-0.5 rounded bg-accent/20 text-accent text-xs font-bold uppercase tracking-wider" x-text="meaning.partOfSpeech"></span>
-                                <ul class="mt-3 space-y-3 list-disc pl-5 opacity-90">
+                            <div class="mb-4">
+                                <span class="px-2 py-0.5 rounded bg-white/10 text-xs font-bold uppercase" x-text="meaning.partOfSpeech"></span>
+                                <ul class="mt-2 space-y-2 list-disc pl-5">
                                     <template x-for="def in meaning.definitions.slice(0,3)" :key="def.definition">
-                                        <li x-text="def.definition" class="leading-relaxed"></li>
+                                        <li class="opacity-90" x-text="def.definition"></li>
                                     </template>
                                 </ul>
                             </div>
@@ -285,10 +264,310 @@
             </div>
 
         </div>
+
+        <div x-show="showSettings" class="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center" x-cloak>
+            <div class="panel p-6 rounded-xl w-full max-w-lg relative border border-accent">
+                <button @click="showSettings = false" class="absolute top-4 right-4"><i class="ph-bold ph-x"></i></button>
+                
+                <h2 class="text-xl font-bold mb-4">System Configuration</h2>
+                
+                <div x-show="!user" class="mb-6 pb-6 border-b border-white/10">
+                    <h3 class="font-semibold mb-2 text-accent">Authentication</h3>
+                    <p class="text-xs text-muted mb-4">Paste your Firebase Config below to enable Google Sign-In.</p>
+                    <textarea x-model="firebaseConfigInput" class="w-full h-32 bg-black/30 border border-white/20 rounded p-2 text-xs font-mono" placeholder='{ "apiKey": "AIza...", ... }'></textarea>
+                    <div class="flex gap-2 mt-4">
+                        <button @click="saveConfig" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded">Save Config</button>
+                        <button @click="googleLogin" class="flex-1 btn-accent py-2 rounded flex items-center justify-center gap-2" :disabled="!firebaseConfigured">
+                            <i class="ph-bold ph-google-logo"></i> Sign In with Google
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="user" class="mb-6 text-center">
+                    <img :src="user?.photoURL" class="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-accent">
+                    <div class="font-bold text-lg" x-text="user?.displayName"></div>
+                    <div class="text-sm opacity-60" x-text="user?.email"></div>
+                    <button @click="logout" class="mt-4 px-4 py-2 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white transition">Sign Out</button>
+                </div>
+                
+                <div class="text-xs text-center text-muted">
+                    <p>VANTAGE v2.0 | Client-Side Architecture</p>
+                </div>
+            </div>
+        </div>
+
     </main>
 
 <script>
-    // HARDCODED CONFIG (Your Keys)
-    const FB_CONFIG = {
-        apiKey: "AIzaSyD6F2TCqGB0HThGj0usvLHl30ZOphFRVkM",
-        authDomain: "osint-workbench-dbe48.firebaseapp.
+    function app() {
+        return {
+            // State
+            activeTab: 'dashboard',
+            showSettings: false,
+            currentTheme: 'theme-cyber',
+            
+            // Firebase State
+            firebaseConfigInput: localStorage.getItem('vantage_fb_config') || '',
+            firebaseConfigured: false,
+            user: null,
+            dbConnected: false,
+            db: null,
+
+            // Intel Data
+            savedNotes: [],
+            currentNote: { id: null, title: '', content: '', updatedAt: null },
+
+            // Geo Tool State
+            map: null,
+            mapLayer: null,
+            ipInput: '',
+            ipData: null,
+
+            // EXIF State
+            exifData: null,
+            previewImage: null,
+
+            // Dictionary
+            dictQuery: '',
+            dictResult: null,
+
+            // Quick Actions
+            quickUrl: '',
+
+            // Nav Config
+            navItems: [
+                { id: 'dashboard', label: 'Dashboard', icon: 'ph-bold ph-squares-four' },
+                { id: 'notes', label: 'Intel Notes', icon: 'ph-bold ph-notebook' },
+                { id: 'geo', label: 'Geo-Intelligence', icon: 'ph-bold ph-globe-hemisphere-west' },
+                { id: 'media', label: 'Media Forensics', icon: 'ph-bold ph-image' },
+                { id: 'dict', label: 'Reference', icon: 'ph-bold ph-books' },
+            ],
+
+            init() {
+                this.applyTheme();
+                
+                // Initialize Firebase if config exists
+                if (this.firebaseConfigInput && this.firebaseConfigInput.trim().startsWith('{')) {
+                    this.initFirebase(JSON.parse(this.firebaseConfigInput));
+                } else {
+                    // Fallback to local storage only
+                    this.savedNotes = JSON.parse(localStorage.getItem('vantage_notes') || '[]');
+                }
+
+                // Watchers
+                this.$watch('activeTab', (val) => {
+                    if (val === 'geo') {
+                        setTimeout(() => {
+                            if (!this.map) this.initMap();
+                            this.map.invalidateSize();
+                        }, 100);
+                    }
+                });
+            },
+
+            // --- THEMES ---
+            applyTheme() {
+                document.documentElement.className = this.currentTheme + ' dark'; // keep dark class for Tailwind
+            },
+
+            // --- FIREBASE & AUTH ---
+            saveConfig() {
+                try {
+                    const config = JSON.parse(this.firebaseConfigInput);
+                    localStorage.setItem('vantage_fb_config', this.firebaseConfigInput);
+                    this.initFirebase(config);
+                    alert("Config saved. You can now login.");
+                } catch (e) {
+                    alert("Invalid JSON Config. Please copy the object exactly from Firebase Console.");
+                }
+            },
+
+            initFirebase(config) {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
+                this.firebaseConfigured = true;
+                
+                // Auth Listener
+                firebase.auth().onAuthStateChanged(user => {
+                    this.user = user;
+                    if (user) {
+                        this.db = firebase.firestore();
+                        this.dbConnected = true;
+                        this.syncNotes();
+                    } else {
+                        this.dbConnected = false;
+                        this.savedNotes = JSON.parse(localStorage.getItem('vantage_notes') || '[]');
+                    }
+                });
+            },
+
+            googleLogin() {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                firebase.auth().signInWithPopup(provider).catch(e => alert(e.message));
+            },
+
+            logout() {
+                firebase.auth().signOut();
+            },
+
+            // --- DATA / NOTES (Cloud + Local) ---
+            createNewNote() {
+                this.currentNote = {
+                    id: Date.now().toString(),
+                    title: '',
+                    content: '',
+                    updatedAt: new Date().toISOString()
+                };
+            },
+
+            saveCurrentNote() {
+                if (!this.currentNote.id) this.currentNote.id = Date.now().toString();
+                this.currentNote.updatedAt = new Date().toISOString();
+
+                // 1. Update List
+                const index = this.savedNotes.findIndex(n => n.id === this.currentNote.id);
+                if (index > -1) {
+                    this.savedNotes[index] = {...this.currentNote};
+                } else {
+                    this.savedNotes.unshift({...this.currentNote});
+                }
+
+                // 2. Local Save
+                localStorage.setItem('vantage_notes', JSON.stringify(this.savedNotes));
+
+                // 3. Cloud Save
+                if (this.dbConnected && this.user) {
+                    this.db.collection('users').doc(this.user.uid).collection('notes').doc(this.currentNote.id)
+                        .set(this.currentNote)
+                        .then(() => console.log("Saved to Cloud"))
+                        .catch(e => console.error(e));
+                }
+            },
+
+            syncNotes() {
+                if (!this.db || !this.user) return;
+                this.db.collection('users').doc(this.user.uid).collection('notes')
+                    .orderBy('updatedAt', 'desc')
+                    .onSnapshot(snapshot => {
+                        this.savedNotes = snapshot.docs.map(doc => doc.data());
+                    });
+            },
+
+            loadNote(note) {
+                this.currentNote = {...note};
+                this.activeTab = 'notes';
+            },
+
+            deleteNote() {
+                if(!confirm('Delete this investigation?')) return;
+                
+                this.savedNotes = this.savedNotes.filter(n => n.id !== this.currentNote.id);
+                localStorage.setItem('vantage_notes', JSON.stringify(this.savedNotes));
+                
+                if (this.dbConnected && this.user && this.currentNote.id) {
+                    this.db.collection('users').doc(this.user.uid).collection('notes').doc(this.currentNote.id).delete();
+                }
+                
+                this.createNewNote();
+            },
+
+            downloadNote() {
+                const blob = new Blob([this.currentNote.content], { type: 'text/markdown' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = (this.currentNote.title || 'investigation') + '.md';
+                a.click();
+            },
+
+            renderMarkdown(text) {
+                return marked.parse(text || '');
+            },
+
+            // --- GEO INTELLIGENCE ---
+            initMap() {
+                this.map = L.map('map').setView([20, 0], 2);
+                
+                // Dark Matter Tiles
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 19
+                }).addTo(this.map);
+            },
+
+            async lookupIp() {
+                if (!this.ipInput) return;
+                try {
+                    const res = await fetch(`https://ipapi.co/${this.ipInput}/json/`);
+                    const data = await res.json();
+                    
+                    if (data.error) {
+                        alert("IP lookup failed"); 
+                        return;
+                    }
+
+                    this.ipData = data;
+                    if (this.map) {
+                        this.map.setView([data.latitude, data.longitude], 13);
+                        L.marker([data.latitude, data.longitude])
+                            .addTo(this.map)
+                            .bindPopup(`<b>${data.ip}</b><br>${data.org}<br>${data.city}, ${data.country_name}`)
+                            .openPopup();
+                    }
+                } catch (e) {
+                    alert("Could not fetch IP data (Adblocker might interfere)");
+                }
+            },
+
+            // --- MEDIA FORENSICS ---
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Preview
+                const reader = new FileReader();
+                reader.onload = (e) => this.previewImage = e.target.result;
+                reader.readAsDataURL(file);
+
+                // EXIF
+                EXIF.getData(file, () => {
+                    const allTags = EXIF.getAllTags(file);
+                    // Filter non-string/number large objects
+                    this.exifData = {
+                        make: allTags.Make,
+                        model: allTags.Model,
+                        date: allTags.DateTime,
+                        software: allTags.Software,
+                        gpsLat: allTags.GPSLatitude ? this.convertDMSToDD(allTags.GPSLatitude, allTags.GPSLatitudeRef) : 'N/A',
+                        gpsLong: allTags.GPSLongitude ? this.convertDMSToDD(allTags.GPSLongitude, allTags.GPSLongitudeRef) : 'N/A'
+                    };
+                });
+            },
+
+            convertDMSToDD(dms, ref) {
+                let dd = dms[0] + dms[1]/60 + dms[2]/(60*60);
+                if (ref == "S" || ref == "W") { dd = dd * -1; }
+                return dd.toFixed(5);
+            },
+
+            // --- DICTIONARY ---
+            async lookupTerm() {
+                if (!this.dictQuery) return;
+                try {
+                    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${this.dictQuery}`);
+                    const data = await res.json();
+                    this.dictResult = data[0];
+                } catch (e) {
+                    alert("Term not found.");
+                }
+            },
+            
+            analyzeUrl() {
+                window.open('https://www.virustotal.com/gui/search/' + encodeURIComponent(this.quickUrl), '_blank');
+            }
+        }
+    }
+</script>
+</body>
+</html>
