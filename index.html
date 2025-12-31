@@ -191,9 +191,18 @@ textarea,input{
 
 <body>
 <div class="app">
+<section id="pdfextract">
+<h2>Offline PDF Text Extractor</h2>
+
+<input type="file" id="pdfFile" accept="application/pdf">
+<button onclick="extractPdf()">Extract Text</button>
+
+<textarea id="pdfOutput" style="height:40vh"></textarea>
+</section>
 
 <!-- SIDEBAR -->
 <div class="sidebar">
+<div class="navbtn" data-target="pdfextract"><div class="icon">📕</div><span>PDF</span></div>
 
 <div class="logo">🕵 OSINT Workbench</div>
 
@@ -313,6 +322,23 @@ textarea,input{
 <input type="file" id="importFile">
 <button onclick="importVault()">Import vault</button>
 </section>
+async function extractPdf(){
+  const file = document.getElementById("pdfFile").files[0];
+  if(!file) return;
+
+  const array = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: array}).promise;
+
+  let out = "";
+
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const text = await page.getTextContent();
+    out += text.items.map(t => t.str).join(" ") + "\n\n";
+  }
+
+  document.getElementById("pdfOutput").value = out;
+}
 
 </div></div>
 
