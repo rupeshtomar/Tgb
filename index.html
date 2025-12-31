@@ -200,6 +200,9 @@ textarea,input{
     <button onclick="unlock()">Unlock</button>
   </div>
 </div>
+
+  </div>
+</div>
   
 <div class="app">
 <section id="pdfextract">
@@ -442,6 +445,41 @@ function renderVaults(){
   box.appendChild(btn);
  });
 }
+const PASSWORD_HASH_KEY = "osint_password_hash";
+
+function setPassword(){
+  const p = prompt("Set a new password:");
+  if(!p) return;
+  const hash = CryptoJS.SHA256(p).toString();
+  localStorage.setItem(PASSWORD_HASH_KEY, hash);
+  alert("Password set. Remember it!");
+}
+
+function unlock(){
+  const input = document.getElementById("lockPass").value;
+  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
+
+  if(!stored){
+    setPassword();
+    document.getElementById("lockscreen").style.display="none";
+    return;
+  }
+
+  const hash = CryptoJS.SHA256(input).toString();
+
+  if(hash === stored){
+    document.getElementById("lockscreen").style.display="none";
+  } else {
+    document.getElementById("lockMsg").innerText = "❌ Wrong password. Try again.";
+  }
+}
+
+window.addEventListener("load", ()=>{
+  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
+  if(!stored){
+    document.getElementById("lockMsg").innerText = "Create password";
+  }
+});
 
 /* Helper functions, analytics, attachments, etc. remain same as before */
 /* (they were included earlier and still work with new UI) */
