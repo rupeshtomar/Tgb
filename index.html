@@ -182,6 +182,8 @@ textarea,input{
   <div class="navbtn active" data-target="vaults">📂 Vaults</div>
   <div class="navbtn" data-target="pdfextract">📕 PDF</div>
 </div>
+<div class="theme-toggle" onclick="manualLock()">🔒 Lock / Login</div>
+<div class="theme-toggle" onclick="logout()">🚪 Logout</div>
 
 <div class="theme-toggle" onclick="toggleTheme()">🌗 Toggle light / dark</div>
 <div class="theme-toggle" onclick="resetPassword()">🔁 Reset password</div>
@@ -283,6 +285,15 @@ function createPassword(){
   localStorage.setItem(STORAGE_KEY,encryptVault(VAULT,SESSION_KEY));
 
   document.getElementById("lockscreen").style.display="none";
+}
+function manualLock(){
+  document.getElementById("lockscreen").style.display = "flex";
+}
+function logout(){
+  SESSION_KEY = null;
+  VAULT = null;
+  document.getElementById("lockscreen").style.display = "flex";
+  document.getElementById("loginPass").value = "";
 }
 
 /* ---------------- UNLOCK ---------------- */
