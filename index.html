@@ -170,44 +170,50 @@
                     <button @click="googleLogin" class="px-4 py-2 bg-orange-600 text-white rounded text-xs font-bold hover:bg-orange-500">Connect</button>
                 </div>
 
-                <div class="panel p-5 rounded-xl border border-white/5">
-                    <h3 class="font-bold mb-4 flex items-center gap-2">
-                        <i class="ph-bold ph-newspaper text-accent"></i> 
-                        Quick Capture
-                    </h3>
-                    <div class="flex flex-col md:flex-row gap-2">
-                        <input type="text" x-model="quickUrl" @keydown.enter="quickCapture" placeholder="Paste URL or Text to save..." 
-                               class="flex-1 bg-black/20 border rounded px-4 py-2 focus:border-accent focus:outline-none" 
-                               style="border-color: var(--border)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="panel p-5 rounded-xl border border-white/5 shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold flex items-center gap-2">
+                                <i class="ph-bold ph-archive text-accent"></i> 
+                                Article Archiver
+                            </h3>
+                            <button @click="downloadArchive" class="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition" title="Download for Offline Use">
+                                <i class="ph-bold ph-download-simple"></i> Download All
+                            </button>
+                        </div>
                         
-                        <button @click="quickCapture" class="btn-accent px-4 py-2 rounded font-medium flex items-center gap-2">
-                            <i class="ph-bold ph-floppy-disk"></i> Save
-                        </button>
-                        
-                        <button @click="openTool('virustotal', quickUrl)" class="px-3 py-2 border rounded hover:bg-white/5 border-white/10" title="Scan on VirusTotal">
-                            <i class="ph-bold ph-shield-warning text-orange-400"></i>
-                        </button>
+                        <div class="space-y-3">
+                            <input type="text" x-model="articleForm.title" placeholder="Article Title..." class="w-full bg-black/20 border rounded px-3 py-2 text-xs focus:border-accent focus:outline-none" style="border-color: var(--border)">
+                            <input type="text" x-model="articleForm.url" placeholder="Source URL..." class="w-full bg-black/20 border rounded px-3 py-2 text-xs focus:border-accent focus:outline-none" style="border-color: var(--border)">
+                            <textarea x-model="articleForm.summary" placeholder="Summary / Key Points..." class="w-full bg-black/20 border rounded px-3 py-2 text-xs focus:border-accent focus:outline-none h-20 resize-none" style="border-color: var(--border)"></textarea>
+                            <button @click="saveArticle" class="w-full btn-accent py-2 rounded font-medium flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-floppy-disk"></i> Archive
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="panel p-6 rounded-xl border-l-4 border-accent">
-                        <div class="text-xs uppercase font-bold opacity-60">Vault Status</div>
-                        <div class="text-4xl font-bold mt-2" x-text="savedNotes ? savedNotes.length : 0">0</div>
-                        <div class="text-xs opacity-60 mt-1">Files Stored</div>
-                    </div>
-                    
-                    <div class="md:col-span-2 panel p-6 rounded-xl">
-                        <h3 class="font-bold mb-2">Scan Tools</h3>
-                        <div class="flex gap-2 flex-wrap">
-                            <button @click="openTool('virustotal')" class="px-3 py-2 border rounded hover:bg-white/5 border-white/10 text-xs">VirusTotal</button>
-                            <button @click="openTool('whois')" class="px-3 py-2 border rounded hover:bg-white/5 border-white/10 text-xs">WhoIs Lookup</button>
-                            <button @click="openTool('wayback')" class="px-3 py-2 border rounded hover:bg-white/5 border-white/10 text-xs">Wayback Machine</button>
+                    <div class="panel p-5 rounded-xl border border-white/5 flex flex-col h-[300px]">
+                        <h3 class="font-bold mb-4 flex items-center gap-2 border-b pb-2" style="border-color: var(--border)">
+                            <i class="ph-bold ph-list-dashes text-accent"></i> 
+                            Archived Intelligence
+                            <span class="text-xs bg-accent text-white px-1.5 rounded-full ml-auto" x-text="savedArticles.length">0</span>
+                        </h3>
+                        
+                        <div class="flex-1 overflow-y-auto space-y-2">
+                            <template x-for="art in savedArticles" :key="art.id">
+                                <div class="p-3 bg-white/5 rounded hover:bg-white/10 transition group relative">
+                                    <button @click="deleteArticle(art.id)" class="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-300"><i class="ph-bold ph-trash"></i></button>
+                                    <div class="font-bold text-sm truncate pr-6" x-text="art.title"></div>
+                                    <a :href="art.url" target="_blank" class="text-xs text-accent hover:underline truncate block" x-text="art.url"></a>
+                                    <div class="text-xs opacity-60 mt-1 line-clamp-2" x-text="art.summary"></div>
+                                </div>
+                            </template>
+                            <div x-show="savedArticles.length === 0" class="text-center opacity-40 py-10">No articles archived yet.</div>
                         </div>
                     </div>
                 </div>
 
-                <h3 class="font-bold text-lg mt-4 border-b pb-2" style="border-color: var(--border)">Recent Files</h3>
+                <h3 class="font-bold text-lg mt-6 border-b pb-2" style="border-color: var(--border)">Recent Case Notes</h3>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <template x-for="note in savedNotes.slice(0, 4)" :key="note.id">
                         <div @click="loadNote(note)" class="panel p-4 rounded-lg cursor-pointer hover:border-accent transition group">
@@ -220,7 +226,7 @@
                     </template>
                     <div x-show="savedNotes.length === 0" class="col-span-2 text-center py-10 opacity-40">
                         <i class="ph-duotone ph-folder-open text-4xl mb-2"></i>
-                        <p>No files found.</p>
+                        <p>No notes found.</p>
                     </div>
                 </div>
             </div>
@@ -321,10 +327,14 @@
 
             // Data Models
             savedNotes: JSON.parse(localStorage.getItem('vantage_notes') || '[]'),
+            savedArticles: JSON.parse(localStorage.getItem('vantage_articles') || '[]'),
+            
             currentNote: { id: null, title: '', content: '', updatedAt: null },
             
-            // Tool Models
-            quickUrl: '',
+            // Forms
+            articleForm: { title: '', url: '', summary: '' },
+            
+            // Tools
             map: null,
             ipInput: '',
             exifData: null,
@@ -370,6 +380,7 @@
                         this.db = firebase.firestore();
                         this.dbConnected = true;
                         this.syncNotes();
+                        this.syncArticles();
                     }
                 });
             },
@@ -381,22 +392,66 @@
 
             logout() { firebase.auth().signOut(); },
 
-            // --- QUICK CAPTURE ---
-            quickCapture() {
-                if (!this.quickUrl) return;
+            // --- ARTICLE ARCHIVER (NEW) ---
+            saveArticle() {
+                if (!this.articleForm.title) return alert("Title is required");
                 
-                const newNote = {
+                const newArt = {
                     id: Date.now().toString(),
-                    title: "Capture: " + this.quickUrl.substring(0, 20),
-                    content: `**Quick Capture**\n\nContent: ${this.quickUrl}\n\nCaptured: ${new Date().toLocaleString()}`,
-                    updatedAt: new Date().toISOString()
+                    title: this.articleForm.title,
+                    url: this.articleForm.url,
+                    summary: this.articleForm.summary,
+                    date: new Date().toISOString()
                 };
+
+                // Add to start of array
+                this.savedArticles = [newArt, ...this.savedArticles];
                 
-                // Force Update
-                this.savedNotes = [newNote, ...this.savedNotes];
-                this.persist();
-                this.quickUrl = '';
-                alert("Captured to Notes!");
+                // Save Local
+                localStorage.setItem('vantage_articles', JSON.stringify(this.savedArticles));
+                
+                // Save Cloud
+                if (this.dbConnected && this.user) {
+                    this.db.collection('users').doc(this.user.uid).collection('articles').doc(newArt.id).set(newArt);
+                }
+
+                // Reset Form
+                this.articleForm = { title: '', url: '', summary: '' };
+            },
+
+            deleteArticle(id) {
+                if(!confirm("Remove from archive?")) return;
+                this.savedArticles = this.savedArticles.filter(a => a.id !== id);
+                localStorage.setItem('vantage_articles', JSON.stringify(this.savedArticles));
+                if (this.dbConnected && this.user) {
+                    this.db.collection('users').doc(this.user.uid).collection('articles').doc(id).delete();
+                }
+            },
+
+            syncArticles() {
+                if (!this.db || !this.user) return;
+                this.db.collection('users').doc(this.user.uid).collection('articles').orderBy('date', 'desc')
+                    .onSnapshot(snapshot => {
+                        this.savedArticles = snapshot.docs.map(doc => doc.data());
+                    });
+            },
+
+            downloadArchive() {
+                if (this.savedArticles.length === 0) return alert("No articles to download.");
+                
+                let htmlContent = `<html><head><title>VANTAGE Article Archive</title><style>body{font-family:sans-serif;max-width:800px;margin:2rem auto;line-height:1.6;color:#333}h1{border-bottom:2px solid #333}article{margin-bottom:2rem;padding:1rem;background:#f4f4f4;border-radius:8px}a{color:#007bff}</style></head><body><h1>Intelligence Archive</h1><p>Generated: ${new Date().toLocaleString()}</p>`;
+                
+                this.savedArticles.forEach(art => {
+                    htmlContent += `<article><h2>${art.title}</h2><p><strong>Source:</strong> <a href="${art.url}">${art.url}</a></p><p><strong>Summary:</strong> ${art.summary}</p><small>Archived: ${new Date(art.date).toLocaleString()}</small></article>`;
+                });
+                
+                htmlContent += '</body></html>';
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `vantage_archive_${Date.now()}.html`;
+                a.click();
             },
 
             // --- NOTES ---
@@ -414,8 +469,7 @@
                 } else {
                     this.savedNotes = [{...this.currentNote}, ...this.savedNotes];
                 }
-
-                this.persist();
+                this.persistNotes();
             },
 
             loadNote(note) { this.currentNote = {...note}; this.activeTab = 'notes'; },
@@ -423,14 +477,14 @@
             deleteNote() {
                 if(!confirm('Delete?')) return;
                 this.savedNotes = this.savedNotes.filter(n => n.id !== this.currentNote.id);
-                this.persist();
+                this.persistNotes();
                 if (this.dbConnected && this.user) {
                     this.db.collection('users').doc(this.user.uid).collection('notes').doc(this.currentNote.id).delete();
                 }
                 this.createNewNote();
             },
 
-            persist() {
+            persistNotes() {
                 localStorage.setItem('vantage_notes', JSON.stringify(this.savedNotes));
                 if (this.dbConnected && this.user) {
                     this.db.collection('users').doc(this.user.uid).collection('notes').doc(this.currentNote.id).set(this.currentNote);
@@ -450,8 +504,6 @@
             // --- MAP (Google Hybrid Simulation) ---
             initMap() {
                 this.map = L.map('map').setView([20, 0], 2);
-                
-                // Google Hybrid Tile Layer
                 L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
                     maxZoom: 20,
                     subdomains:['mt0','mt1','mt2','mt3']
@@ -488,20 +540,6 @@
                     const data = await res.json();
                     this.dictResult = data[0];
                 } catch(e) { alert("Term not found"); }
-            },
-
-            openTool(type, query = '') {
-                const urls = {
-                    virustotal: 'https://www.virustotal.com/gui/search/' + encodeURIComponent(query || ''),
-                    whois: 'https://who.is/',
-                    wayback: 'https://web.archive.org/'
-                };
-                
-                if(type === 'virustotal' && !query) {
-                     window.open('https://www.virustotal.com/gui/home/upload', '_blank');
-                } else {
-                     window.open(urls[type], '_blank');
-                }
             }
         }
     }
