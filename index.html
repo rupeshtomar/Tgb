@@ -45,6 +45,7 @@ html,body{
   background:var(--bg);
   color:var(--text);
 }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
 /* APP LAYOUT */
 .app{
@@ -193,16 +194,27 @@ textarea,input{
 
 <body>
 <div id="lockscreen" style="position:fixed;inset:0;background:#020617;display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div style="background:#0f172a;border:1px solid #1f2937;padding:22px;border-radius:16px;max-width:320px;width:90%;text-align:center">
+  <div style="background:#0f172a;border:1px solid #1f2937;padding:26px 22px;border-radius:18px;max-width:360px;width:92%;text-align:center">
+
     <h2>🔒 OSINT Workbench</h2>
-    <p id="lockMsg">Enter password</p>
-    <input type="password" id="lockPass" placeholder="Password"><br><br>
-    <button onclick="unlock()">Unlock</button>
-  </div>
-</div>
+    <p id="lockTitle" style="margin-top:6px;margin-bottom:18px"></p>
+
+    <div id="setupBox">
+      <input type="password" id="setPass1" placeholder="Create password" style="width:100%;margin-bottom:10px">
+      <input type="password" id="setPass2" placeholder="Confirm password" style="width:100%;margin-bottom:14px">
+      <button onclick="createPassword()">Save Password</button>
+      <p id="setupMsg" style="color:#f87171;margin-top:10px"></p>
+    </div>
+
+    <div id="loginBox">
+      <input type="password" id="loginPass" placeholder="Enter password" style="width:100%;margin-bottom:14px">
+      <button onclick="unlock()">Unlock</button>
+      <p id="loginMsg" style="color:#f87171;margin-top:10px"></p>
+    </div>
 
   </div>
 </div>
+
   
 <div class="app">
 <section id="pdfextract">
@@ -355,40 +367,66 @@ async function extractPdf(){
 }
 const PASSWORD_HASH_KEY = "osint_password_hash";
 
-function setPassword(){
-  const p = prompt("Set a new password:");
-  if(!p) return;
-  const hash = CryptoJS.SHA256(p).toString();
-  localStorage.setItem(PASSWORD_HASH_KEY, hash);
-  alert("Password set. Remember it!");
-}
+/* ---------- INITIAL MODE SETUP ---------- */
 
-function unlock(){
-  const input = document.getElementById("lockPass").value;
+window.addEventListener("load", ()=>{
   const stored = localStorage.getItem(PASSWORD_HASH_KEY);
 
   if(!stored){
-    // first time setup
-    setPassword();
-    document.getElementById("lockscreen").style.display="none";
+    // first time → SETUP MODE
+    document.getElementById("setupBox").style.display = "block";
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("lockTitle").innerText = "Set your password";
+  } else {
+    // later → LOGIN MODE
+    document.getElementById("setupBox").style.display = "none";
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("lockTitle").innerText = "Enter password";
+  }
+});
+
+/* ---------- CREATE PASSWORD ---------- */
+
+function createPassword(){
+  const p1 = document.getElementById("setPass1").value;
+  const p2 = document.getElementById("setPass2").value;
+
+  if(!p1 || !p2){
+    document.getElementById("setupMsg").innerText = "Password fields cannot be empty.";
     return;
   }
 
-  const hash = CryptoJS.SHA256(input).toString();
+  if(p1 !== p2){
+    document.getElementById("setupMsg").innerText = "Passwords do not match.";
+    return;
+  }
+
+  const hash = CryptoJS.SHA256(p1).toString();
+  localStorage.setItem(PASSWORD_HASH_KEY, hash);
+
+  document.getElementById("lockscreen").style.display = "none";
+}
+
+/* ---------- UNLOCK ---------- */
+
+function unlock(){
+  const entered = document.getElementById("loginPass").value;
+  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
+
+  if(!stored){
+    document.getElementById("loginMsg").innerText = "No password set.";
+    return;
+  }
+
+  const hash = CryptoJS.SHA256(entered).toString();
 
   if(hash === stored){
-    document.getElementById("lockscreen").style.display="none";
+    document.getElementById("lockscreen").style.display = "none";
   } else {
-    document.getElementById("lockMsg").innerText = "❌ Wrong password. Try again.";
+    document.getElementById("loginMsg").innerText = "Incorrect password.";
   }
 }
 
-// auto lock on load
-window.addEventListener("load", ()=>{
-  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
-  if(!stored){
-    document.getElementById("lockMsg").innerText = "Create password";
-  }
 });
 
 </div></div>
