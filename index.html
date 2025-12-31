@@ -1,0 +1,587 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2113.65">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+    span.s1 {font: 12.0px 'Lucida Grande'}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="utf-8"&gt;</p>
+<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</p>
+<p class="p1">&lt;title&gt;OSINT Intelligence Workbench&lt;/title&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;link rel="manifest" href="manifest.json"&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1">if ('serviceWorker' in navigator) {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>navigator.serviceWorker.register('service-worker.js');</p>
+<p class="p1">}</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1">body{background:#0b1220;color:#e5e7eb;margin:0;font-family:system-ui}</p>
+<p class="p1">header{display:flex;gap:6px;padding:8px;background:#0f172a;position:sticky;top:0;z-index:5}</p>
+<p class="p1">button{padding:6px 10px;border-radius:8px;border:1px solid #374151;background:#020617;color:white;cursor:pointer}</p>
+<p class="p1">button.active{background:#38bdf8;color:black}</p>
+<p class="p1">section{display:none;padding:12px}</p>
+<p class="p1">section.active{display:block}</p>
+<p class="p2"><br></p>
+<p class="p1">textarea,input{background:#020617;color:white;border:1px solid #374151;border-radius:8px;padding:8px}</p>
+<p class="p2"><br></p>
+<p class="p1">.keyword-pill{padding:6px 10px;background:#134e4a;border-radius:999px;margin:4px;display:inline-block;cursor:pointer}</p>
+<p class="p2"><br></p>
+<p class="p1">.graphBox{height:360px;border:1px solid #1f2937;border-radius:12px}</p>
+<p class="p1">#mapCanvas{border:1px solid #1f2937;border-radius:12px}</p>
+<p class="p2"><br></p>
+<p class="p1">.heat{display:grid;grid-template-columns:repeat(32,1fr);gap:2px}</p>
+<p class="p1">.heat div{width:10px;height:10px;border-radius:2px}</p>
+<p class="p2"><br></p>
+<p class="p1">.attachment{border:1px solid #1f2937;border-radius:12px;padding:6px;margin:4px}</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;header&gt;</p>
+<p class="p1">&lt;button class="tab active" data-target="vaults"&gt;Vaults&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="keywords"&gt;Keywords&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="graph"&gt;Graph&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="matrix"&gt;Matrix&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="entities"&gt;Entities&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="calendar"&gt;Calendar&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="attachments"&gt;Attachments&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="map"&gt;Map&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="markdown"&gt;Notebook&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="compare"&gt;Compare&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="themes"&gt;Themes&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="report"&gt;Report&lt;/button&gt;</p>
+<p class="p1">&lt;button class="tab" data-target="export"&gt;Export&lt;/button&gt;</p>
+<p class="p1">&lt;/header&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= VAULTS ================= --&gt;</p>
+<p class="p1">&lt;section id="vaults" class="active"&gt;</p>
+<p class="p1">&lt;h2&gt;Projects / Vaults&lt;/h2&gt;</p>
+<p class="p1">&lt;input id="newVaultName" placeholder="New vault name"&gt;</p>
+<p class="p1">&lt;button onclick="createVault()"&gt;Create&lt;/button&gt;</p>
+<p class="p1">&lt;div id="vaultList"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= KEYWORDS ================= --&gt;</p>
+<p class="p1">&lt;section id="keywords"&gt;</p>
+<p class="p1">&lt;h2&gt;Keywords&lt;/h2&gt;</p>
+<p class="p1">&lt;div id="keywordBox"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;canvas id="keywordChart" width="360" height="220"&gt;&lt;/canvas&gt;</p>
+<p class="p1">&lt;div id="keywordResults"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= GRAPH ================= --&gt;</p>
+<p class="p1">&lt;section id="graph"&gt;</p>
+<p class="p1">&lt;h2&gt;Keyword Graph (drag • zoom • physics)&lt;/h2&gt;</p>
+<p class="p1">&lt;div class="graphBox"&gt;</p>
+<p class="p1">&lt;canvas id="graphCanvas" width="360" height="340"&gt;&lt;/canvas&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= MATRIX ================= --&gt;</p>
+<p class="p1">&lt;section id="matrix"&gt;</p>
+<p class="p1">&lt;h2&gt;Co-occurrence Matrix&lt;/h2&gt;</p>
+<p class="p1">&lt;div id="matrixBox"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= ENTITIES ================= --&gt;</p>
+<p class="p1">&lt;section id="entities"&gt;</p>
+<p class="p1">&lt;h2&gt;Entity Detection (Rule-Based)&lt;/h2&gt;</p>
+<p class="p1">&lt;div id="entityBox"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= CALENDAR ================= --&gt;</p>
+<p class="p1">&lt;section id="calendar"&gt;</p>
+<p class="p1">&lt;h2&gt;Keyword Activity Calendar&lt;/h2&gt;</p>
+<p class="p1">&lt;input id="calKey" placeholder="keyword"&gt;</p>
+<p class="p1">&lt;button onclick="drawCalendar()"&gt;Show&lt;/button&gt;</p>
+<p class="p1">&lt;div id="calendarBox"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= ATTACHMENTS ================= --&gt;</p>
+<p class="p1">&lt;section id="attachments"&gt;</p>
+<p class="p1">&lt;h2&gt;Offline Attachment Manager&lt;/h2&gt;</p>
+<p class="p1">&lt;input type="file" id="filePicker" multiple&gt;</p>
+<p class="p1">&lt;button onclick="addAttachments()"&gt;Add&lt;/button&gt;</p>
+<p class="p1">&lt;div id="attachmentList"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= MAP ================= --&gt;</p>
+<p class="p1">&lt;section id="map"&gt;</p>
+<p class="p1">&lt;h2&gt;Geo Map (marker plotting)&lt;/h2&gt;</p>
+<p class="p1">&lt;canvas id="mapCanvas" width="360" height="260"&gt;&lt;/canvas&gt;</p>
+<p class="p1">&lt;div id="markerList"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= MARKDOWN ================= --&gt;</p>
+<p class="p1">&lt;section id="markdown"&gt;</p>
+<p class="p1">&lt;h2&gt;Markdown Notebook&lt;/h2&gt;</p>
+<p class="p1">&lt;textarea id="mdInput" placeholder="# Write markdown…"&gt;&lt;/textarea&gt;</p>
+<p class="p1">&lt;button onclick="togglePreview()"&gt;Toggle Preview&lt;/button&gt;</p>
+<p class="p1">&lt;div id="mdPreview" style="display:none"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= COMPARE ================= --&gt;</p>
+<p class="p1">&lt;section id="compare"&gt;</p>
+<p class="p1">&lt;h2&gt;Side-by-Side Compare&lt;/h2&gt;</p>
+<p class="p1">&lt;textarea id="leftText" placeholder="Text A…"&gt;&lt;/textarea&gt;</p>
+<p class="p1">&lt;textarea id="rightText" placeholder="Text B…"&gt;&lt;/textarea&gt;</p>
+<p class="p1">&lt;button onclick="compareTexts()"&gt;Compare&lt;/button&gt;</p>
+<p class="p1">&lt;div id="compareResult"&gt;&lt;/div&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= THEMES ================= --&gt;</p>
+<p class="p1">&lt;section id="themes"&gt;</p>
+<p class="p1">&lt;h2&gt;Theme Builder&lt;/h2&gt;</p>
+<p class="p1">&lt;label&gt;Background&lt;/label&gt;&lt;input type="color" id="bgCol"&gt;</p>
+<p class="p1">&lt;label&gt;Foreground&lt;/label&gt;&lt;input type="color" id="fgCol"&gt;</p>
+<p class="p1">&lt;label&gt;Accent&lt;/label&gt;&lt;input type="color" id="acCol"&gt;</p>
+<p class="p1">&lt;button onclick="applyTheme()"&gt;Apply&lt;/button&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= REPORT ================= --&gt;</p>
+<p class="p1">&lt;section id="report"&gt;</p>
+<p class="p1">&lt;h2&gt;Report Generator&lt;/h2&gt;</p>
+<p class="p1">&lt;select id="reportType"&gt;</p>
+<p class="p1">&lt;option&gt;Incident Summary&lt;/option&gt;</p>
+<p class="p1">&lt;option&gt;Country Situation Brief&lt;/option&gt;</p>
+<p class="p1">&lt;option&gt;Entity Profile&lt;/option&gt;</p>
+<p class="p1">&lt;/select&gt;</p>
+<p class="p1">&lt;button onclick="generateReport()"&gt;Generate&lt;/button&gt;</p>
+<p class="p1">&lt;textarea id="reportOut" style="height:40vh"&gt;&lt;/textarea&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;!-- ================= EXPORT ================= --&gt;</p>
+<p class="p1">&lt;section id="export"&gt;</p>
+<p class="p1">&lt;h2&gt;Export / Import Vault&lt;/h2&gt;</p>
+<p class="p1">&lt;button onclick="exportVault()"&gt;Export current vault&lt;/button&gt;&lt;br&gt;&lt;br&gt;</p>
+<p class="p1">&lt;input type="file" id="importFile"&gt;</p>
+<p class="p1">&lt;button onclick="importVault()"&gt;Import vault&lt;/button&gt;</p>
+<p class="p1">&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1">/* ---------- Tabs ---------- */</p>
+<p class="p1">document.querySelectorAll('.tab').forEach(b=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space"> </span>b.onclick=()=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.querySelectorAll('.tab').forEach(x=&gt;x.classList.remove('active'));</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.querySelectorAll('section').forEach(x=&gt;x.classList.remove('active'));</p>
+<p class="p1"><span class="Apple-converted-space">  </span>b.classList.add('active');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById(b.dataset.target).classList.add('active');</p>
+<p class="p1"><span class="Apple-converted-space"> </span>};</p>
+<p class="p1">});</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Vaults ---------- */</p>
+<p class="p1">let vaults=JSON.parse(localStorage.getItem("vaults")||"{}");</p>
+<p class="p1">let currentVault=localStorage.getItem("currentVault")||"default";</p>
+<p class="p2"><br></p>
+<p class="p1">if(!vaults[currentVault]) vaults[currentVault]={notes:[],feeds:[]};</p>
+<p class="p1">saveVaults();</p>
+<p class="p2"><br></p>
+<p class="p1">function saveVaults(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>localStorage.setItem("vaults",JSON.stringify(vaults));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>localStorage.setItem("currentVault",currentVault);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>renderVaults();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>rebuildEverything();</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function createVault(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>const n=document.getElementById("newVaultName").value.trim();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(!n) return;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>vaults[n]={notes:[],feeds:[]};</p>
+<p class="p1"><span class="Apple-converted-space"> </span>currentVault=n;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>saveVaults();</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function renderVaults(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>const box=document.getElementById("vaultList");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.innerHTML="";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>Object.keys(vaults).forEach(v=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const btn=document.createElement("button");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>btn.textContent=v+(v===currentVault?" <span class="s1">✓</span>":"");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>btn.onclick=()=&gt;{currentVault=v;saveVaults();};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>box.appendChild(btn);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Helpers ---------- */</p>
+<p class="p1">function allNotes(){return vaults[currentVault].notes;}</p>
+<p class="p1">function allFeeds(){return vaults[currentVault].feeds;}</p>
+<p class="p2"><br></p>
+<p class="p1">function tokenize(t){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>return t.toLowerCase()</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/[^a-z0-9\s]/g," ")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.split(/\s+/)</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.filter(w=&gt;w.length&gt;2);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Keywords ---------- */</p>
+<p class="p1">function keywordCounts(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let map=new Map();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>const add=w=&gt;map.set(w,(map.get(w)||0)+1);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allNotes().forEach(n=&gt;tokenize(n.title+n.body).forEach(add));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allFeeds().forEach(f=&gt;tokenize(f.title).forEach(add));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>return [...map.entries()].sort((a,b)=&gt;b[1]-a[1]);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function buildKeywordList(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let box=document.getElementById("keywordBox");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.innerHTML="";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>keywordCounts().slice(0,50).forEach(([k,c])=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let s=document.createElement("span");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s.className="keyword-pill";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s.textContent=k+" ("+c+")";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s.onclick=()=&gt;filterByKeyword(k);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>box.appendChild(s);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>drawKeywordChart();</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Keyword chart ---------- */</p>
+<p class="p1">function drawKeywordChart(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let pairs=keywordCounts().slice(0,10);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let c=document.getElementById("keywordChart");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let x=c.getContext("2d");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>x.clearRect(0,0,c.width,c.height);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(!pairs.length) return;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let max=Math.max(...pairs.map(p=&gt;p[1]));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>pairs.forEach((p,i)=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let h=(p[1]/max)*160;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>x.fillStyle="#38bdf8";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>x.fillRect(20+i*30,200-h,20,h);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>x.fillStyle="white";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>x.fillText(p[0].slice(0,5),20+i*30,215);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function filterByKeyword(k){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let box=document.getElementById("keywordResults");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.innerHTML="&lt;h3&gt;"+k+"&lt;/h3&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allNotes().forEach(n=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if((n.title+n.body).toLowerCase().includes(k)){</p>
+<p class="p1"><span class="Apple-converted-space">   </span>let d=document.createElement("div");</p>
+<p class="p1"><span class="Apple-converted-space">   </span>d.textContent="NOTE • "+n.title;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>box.appendChild(d);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Co-occurrence matrix ---------- */</p>
+<p class="p1">function coMatrix(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let kws=keywordCounts().slice(0,16).map(p=&gt;p[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let mat={};</p>
+<p class="p1"><span class="Apple-converted-space"> </span>kws.forEach(a=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>mat[a]={};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>kws.forEach(b=&gt;mat[a][b]=0);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>function addPairs(words){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>for(let i=0;i&lt;words.length;i++){</p>
+<p class="p1"><span class="Apple-converted-space">   </span>for(let j=i+1;j&lt;words.length;j++){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let a=words[i],b=words[j];</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if(mat[a]&amp;&amp;mat[b]){</p>
+<p class="p1"><span class="Apple-converted-space">     </span>mat[a][b]++; mat[b][a]++;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">   </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allNotes().forEach(n=&gt;addPairs(tokenize(n.title+n.body)));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allFeeds().forEach(f=&gt;addPairs(tokenize(f.title)));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>return mat;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function renderMatrix(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let m=coMatrix();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let kws=Object.keys(m);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let html="&lt;table&gt;&lt;tr&gt;&lt;th&gt;&lt;/th&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>kws.forEach(k=&gt;html+="&lt;th&gt;"+k+"&lt;/th&gt;");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>html+="&lt;/tr&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>kws.forEach(a=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>html+="&lt;tr&gt;&lt;th&gt;"+a+"&lt;/th&gt;";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>kws.forEach(b=&gt;html+="&lt;td&gt;"+m[a][b]+"&lt;/td&gt;");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>html+="&lt;/tr&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>html+="&lt;/table&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.getElementById("matrixBox").innerHTML=html;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Entities ---------- */</p>
+<p class="p1">function detectEntities(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let text=allNotes().map(n=&gt;n.title+" "+n.body).join(" ");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let persons=[...text.matchAll(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g)].map(m=&gt;m[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let orgs=[...text.matchAll(/\b[A-Z][A-Za-z]+ (Bank|Force|Ministry|Agency|Ltd|Inc|Corp)\b/g)].map(m=&gt;m[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let years=[...text.matchAll(/\b(19|20)\d{2}\b/g)].map(m=&gt;m[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let emails=[...text.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)].map(m=&gt;m[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let urls=[...text.matchAll(/https?:\/\/[^\s]+/g)].map(m=&gt;m[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.getElementById("entityBox").innerHTML=</p>
+<p class="p1"><span class="Apple-converted-space">  </span>"&lt;b&gt;Persons:&lt;/b&gt; "+[...new Set(persons)].join(", ")+"&lt;br&gt;&lt;br&gt;"+</p>
+<p class="p1"><span class="Apple-converted-space">  </span>"&lt;b&gt;Orgs:&lt;/b&gt; "+[...new Set(orgs)].join(", ")+"&lt;br&gt;&lt;br&gt;"+</p>
+<p class="p1"><span class="Apple-converted-space">  </span>"&lt;b&gt;Years:&lt;/b&gt; "+[...new Set(years)].join(", ")+"&lt;br&gt;&lt;br&gt;"+</p>
+<p class="p1"><span class="Apple-converted-space">  </span>"&lt;b&gt;Emails:&lt;/b&gt; "+emails.join(", ")+"&lt;br&gt;&lt;br&gt;"+</p>
+<p class="p1"><span class="Apple-converted-space">  </span>"&lt;b&gt;URLs:&lt;/b&gt; "+urls.join(", ");</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Graph physics ---------- */</p>
+<p class="p1">function getEdges(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let m=coMatrix();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let edges=[];</p>
+<p class="p1"><span class="Apple-converted-space"> </span>Object.keys(m).forEach(a=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>Object.keys(m[a]).forEach(b=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>if(m[a][b]&gt;0) edges.push({a,b});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>return edges;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function buildGraphPhysics(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let cvs=document.getElementById("graphCanvas");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let ctx=cvs.getContext("2d");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let words=keywordCounts().slice(0,14).map(p=&gt;p[0]);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let nodes=words.map(k=&gt;({k,x:Math.random()*300+20,y:Math.random()*250+20,vx:0,vy:0}));</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space"> </span>let zoom=1, dragging=null;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space"> </span>cvs.onwheel=e=&gt;{zoom*=e.deltaY&gt;0?0.9:1.1;};</p>
+<p class="p1"><span class="Apple-converted-space"> </span>cvs.onmousedown=e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let mx=e.offsetX/zoom, my=e.offsetY/zoom;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>nodes.forEach(n=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>if(Math.hypot(mx-n.x,my-n.y)&lt;10) dragging=n;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>};</p>
+<p class="p1"><span class="Apple-converted-space"> </span>cvs.onmouseup=()=&gt;dragging=null;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>cvs.onmousemove=e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if(dragging){</p>
+<p class="p1"><span class="Apple-converted-space">   </span>dragging.x=e.offsetX/zoom;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>dragging.y=e.offsetY/zoom;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>};</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space"> </span>function tick(){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>nodes.forEach(a=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>nodes.forEach(b=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if(a===b) return;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let dx=a.x-b.x, dy=a.y-b.y;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let d=Math.hypot(dx,dy)+0.01;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let f=15/(d*d);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>a.vx+=f*dx/d; a.vy+=f*dy/d;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>nodes.forEach(n=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>n.x+=n.vx; n.y+=n.vy;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>n.vx*=0.9; n.vy*=0.9;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.setTransform(zoom,0,0,zoom,0,0);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.clearRect(0,0,2000,2000);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.strokeStyle="#1f2937";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>getEdges().forEach(e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>let A=nodes.find(n=&gt;n.k===e.a);</p>
+<p class="p1"><span class="Apple-converted-space">   </span>let B=nodes.find(n=&gt;n.k===e.b);</p>
+<p class="p1"><span class="Apple-converted-space">   </span>if(A&amp;&amp;B){</p>
+<p class="p1"><span class="Apple-converted-space">    </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>ctx.moveTo(A.x,A.y);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>ctx.lineTo(B.x,B.y);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>ctx.stroke();</p>
+<p class="p1"><span class="Apple-converted-space">   </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>nodes.forEach(n=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.fillStyle="#38bdf8";</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.arc(n.x,n.y,8,0,6.28);</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.fillStyle="white";</p>
+<p class="p1"><span class="Apple-converted-space">   </span>ctx.fillText(n.k,n.x+10,n.y+4);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>requestAnimationFrame(tick);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>tick();</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Calendar heatmap ---------- */</p>
+<p class="p1">function occurrencesFor(k){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let arr=[];</p>
+<p class="p1"><span class="Apple-converted-space"> </span>allNotes().forEach(n=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if((n.title+n.body).toLowerCase().includes(k))</p>
+<p class="p1"><span class="Apple-converted-space">   </span>arr.push(new Date(n.date||Date.now()).toDateString());</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>return new Set(arr);</p>
+<p class="p1">}</p>
+<p class="p1">function drawCalendar(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let k=document.getElementById("calKey").value.toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let box=document.getElementById("calendarBox");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.innerHTML="&lt;h3&gt;"+k+"&lt;/h3&gt;";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let set=occurrencesFor(k);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let div=document.createElement("div");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>div.className="heat";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>for(let i=0;i&lt;365;i++){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let d=new Date(Date.now()-i*86400000).toDateString();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let cell=document.createElement("div");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>cell.style.background=set.has(d)?"#38bdf8":"#1f2937";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>div.appendChild(cell);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>}</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.appendChild(div);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Attachments ---------- */</p>
+<p class="p1">let attachments=JSON.parse(localStorage.getItem("attachments")||"[]");</p>
+<p class="p2"><br></p>
+<p class="p1">function addAttachments(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let files=document.getElementById("filePicker").files;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>[...files].forEach(f=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let r=new FileReader();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>r.onload=e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">   </span>attachments.push({name:f.name,type:f.type,data:e.target.result});</p>
+<p class="p1"><span class="Apple-converted-space">   </span>localStorage.setItem("attachments",JSON.stringify(attachments));</p>
+<p class="p1"><span class="Apple-converted-space">   </span>renderAttachments();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>r.readAsDataURL(f);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p1">function renderAttachments(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let box=document.getElementById("attachmentList");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>box.innerHTML="";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>attachments.forEach((a,i)=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let d=document.createElement("div");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>d.className="attachment";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>d.innerHTML=`</p>
+<p class="p1"><span class="Apple-converted-space">   </span>&lt;b&gt;${a.name}&lt;/b&gt;&lt;br&gt;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>${a.type.startsWith("image")?`&lt;img src="${a.data}" width="100"&gt;`:"[stored offline]"}&lt;br&gt;</p>
+<p class="p1"><span class="Apple-converted-space">   </span>&lt;button onclick="attachments.splice(${i},1);localStorage.setItem('attachments',JSON.stringify(attachments));renderAttachments();"&gt;Delete&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>box.appendChild(d);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p1">renderAttachments();</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Map ---------- */</p>
+<p class="p1">let markers=JSON.parse(localStorage.getItem("markers")||"[]");</p>
+<p class="p1">function drawMap(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let c=document.getElementById("mapCanvas");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let ctx=c.getContext("2d");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>ctx.fillStyle="#020617";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>ctx.fillRect(0,0,c.width,c.height);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>markers.forEach((m,i)=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.fillStyle="#38bdf8";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.arc(m.x,m.y,6,0,6.28);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ctx.fillText(m.label||("M"+(i+1)),m.x+8,m.y+4);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>});</p>
+<p class="p1">}</p>
+<p class="p1">drawMap();</p>
+<p class="p2"><br></p>
+<p class="p1">document.getElementById("mapCanvas").onclick=e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let r=e.target.getBoundingClientRect();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let x=e.clientX-r.left, y=e.clientY-r.top;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let label=prompt("Marker label?");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>markers.push({x,y,label});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>localStorage.setItem("markers",JSON.stringify(markers));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>drawMap();</p>
+<p class="p1">};</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Markdown ---------- */</p>
+<p class="p1">let preview=false;</p>
+<p class="p1">function togglePreview(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>preview=!preview;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(preview){</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById("mdPreview").style.display="block";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById("mdInput").style.display="none";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>renderMarkdown();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>}else{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById("mdPreview").style.display="none";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById("mdInput").style.display="block";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>}</p>
+<p class="p1">}</p>
+<p class="p1">function renderMarkdown(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let t=document.getElementById("mdInput").value;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let html=t</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/^### (.*$)/gim,"&lt;h3&gt;$1&lt;/h3&gt;")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/^## (.*$)/gim,"&lt;h2&gt;$1&lt;/h2&gt;")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/^# (.*$)/gim,"&lt;h1&gt;$1&lt;/h1&gt;")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/\*\*(.*)\*\*/gim,"&lt;b&gt;$1&lt;/b&gt;")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/\*(.*)\*/gim,"&lt;i&gt;$1&lt;/i&gt;")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.replace(/\n/g,"&lt;br&gt;");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.getElementById("mdPreview").innerHTML=html;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Compare ---------- */</p>
+<p class="p1">function compareTexts(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let A=document.getElementById("leftText").value.split(/\s+/);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let B=document.getElementById("rightText").value.split(/\s+/);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let onlyA=A.filter(w=&gt;!B.includes(w));</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.getElementById("compareResult").innerHTML="Unique in A: "+onlyA.join(", ");</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Theme ---------- */</p>
+<p class="p1">function applyTheme(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.body.style.background=document.getElementById("bgCol").value;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.body.style.color=document.getElementById("fgCol").value;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Report generator ---------- */</p>
+<p class="p1">function generateReport(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let t=document.getElementById("reportType").value;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let s="";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(t==="Incident Summary")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s=`Title:\nDate:\nLocation:\nIncident type:\nActors:\nSummary:\nSources:\nAssessment:\nOutlook:`;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(t==="Country Situation Brief")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s=`Country:\nKey events:\nSecurity:\nEconomy:\nPolitics:\nMedia narrative:\nAssessment:\nForecast:`;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(t==="Entity Profile")</p>
+<p class="p1"><span class="Apple-converted-space">  </span>s=`Entity:\nType:\nAliases:\nLeaders:\nLocations:\nCapability:\nHistory:\nAssessment:`;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>document.getElementById("reportOut").value=s;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Export / Import ---------- */</p>
+<p class="p1">function exportVault(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let data=JSON.stringify(vaults[currentVault],null,2);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let blob=new Blob([data],{type:"application/json"});</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let a=document.createElement("a");</p>
+<p class="p1"><span class="Apple-converted-space"> </span>a.href=URL.createObjectURL(blob);</p>
+<p class="p1"><span class="Apple-converted-space"> </span>a.download=currentVault+".json";</p>
+<p class="p1"><span class="Apple-converted-space"> </span>a.click();</p>
+<p class="p1">}</p>
+<p class="p1">function importVault(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let file=document.getElementById("importFile").files[0];</p>
+<p class="p1"><span class="Apple-converted-space"> </span>if(!file)return;</p>
+<p class="p1"><span class="Apple-converted-space"> </span>let r=new FileReader();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>r.onload=e=&gt;{</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let obj=JSON.parse(e.target.result);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>let name=prompt("Name imported vault:");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>vaults[name]=obj;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>currentVault=name;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>saveVaults();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>};</p>
+<p class="p1"><span class="Apple-converted-space"> </span>r.readAsText(file);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">/* ---------- Rebuild ---------- */</p>
+<p class="p1">function rebuildEverything(){</p>
+<p class="p1"><span class="Apple-converted-space"> </span>buildKeywordList();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>renderMatrix();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>detectEntities();</p>
+<p class="p1"><span class="Apple-converted-space"> </span>buildGraphPhysics();</p>
+<p class="p1">}</p>
+<p class="p1">renderVaults();</p>
+<p class="p1">rebuildEverything();</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
