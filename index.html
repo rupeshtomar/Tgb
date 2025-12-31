@@ -20,17 +20,12 @@ button{padding:6px 10px;border-radius:8px;border:1px solid #374151;background:#0
 button.active{background:#38bdf8;color:black}
 section{display:none;padding:12px}
 section.active{display:block}
-
 textarea,input{background:#020617;color:white;border:1px solid #374151;border-radius:8px;padding:8px}
-
 .keyword-pill{padding:6px 10px;background:#134e4a;border-radius:999px;margin:4px;display:inline-block;cursor:pointer}
-
 .graphBox{height:360px;border:1px solid #1f2937;border-radius:12px}
 #mapCanvas{border:1px solid #1f2937;border-radius:12px}
-
 .heat{display:grid;grid-template-columns:repeat(32,1fr);gap:2px}
 .heat div{width:10px;height:10px;border-radius:2px}
-
 .attachment{border:1px solid #1f2937;border-radius:12px;padding:6px;margin:4px}
 </style>
 </head>
@@ -53,7 +48,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <button class="tab" data-target="export">Export</button>
 </header>
 
-<!-- ================= VAULTS ================= -->
 <section id="vaults" class="active">
 <h2>Projects / Vaults</h2>
 <input id="newVaultName" placeholder="New vault name">
@@ -61,7 +55,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <div id="vaultList"></div>
 </section>
 
-<!-- ================= KEYWORDS ================= -->
 <section id="keywords">
 <h2>Keywords</h2>
 <div id="keywordBox"></div>
@@ -69,27 +62,23 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <div id="keywordResults"></div>
 </section>
 
-<!-- ================= GRAPH ================= -->
 <section id="graph">
-<h2>Keyword Graph (drag • zoom • physics)</h2>
+<h2>Keyword Graph</h2>
 <div class="graphBox">
 <canvas id="graphCanvas" width="360" height="340"></canvas>
 </div>
 </section>
 
-<!-- ================= MATRIX ================= -->
 <section id="matrix">
 <h2>Co-occurrence Matrix</h2>
 <div id="matrixBox"></div>
 </section>
 
-<!-- ================= ENTITIES ================= -->
 <section id="entities">
-<h2>Entity Detection (Rule-Based)</h2>
+<h2>Entity Detection</h2>
 <div id="entityBox"></div>
 </section>
 
-<!-- ================= CALENDAR ================= -->
 <section id="calendar">
 <h2>Keyword Activity Calendar</h2>
 <input id="calKey" placeholder="keyword">
@@ -97,22 +86,19 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <div id="calendarBox"></div>
 </section>
 
-<!-- ================= ATTACHMENTS ================= -->
 <section id="attachments">
-<h2>Offline Attachment Manager</h2>
+<h2>Attachment Manager</h2>
 <input type="file" id="filePicker" multiple>
 <button onclick="addAttachments()">Add</button>
 <div id="attachmentList"></div>
 </section>
 
-<!-- ================= MAP ================= -->
 <section id="map">
-<h2>Geo Map (marker plotting)</h2>
+<h2>Geo Map</h2>
 <canvas id="mapCanvas" width="360" height="260"></canvas>
 <div id="markerList"></div>
 </section>
 
-<!-- ================= MARKDOWN ================= -->
 <section id="markdown">
 <h2>Markdown Notebook</h2>
 <textarea id="mdInput" placeholder="# Write markdown…"></textarea>
@@ -120,7 +106,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <div id="mdPreview" style="display:none"></div>
 </section>
 
-<!-- ================= COMPARE ================= -->
 <section id="compare">
 <h2>Side-by-Side Compare</h2>
 <textarea id="leftText" placeholder="Text A…"></textarea>
@@ -129,7 +114,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <div id="compareResult"></div>
 </section>
 
-<!-- ================= THEMES ================= -->
 <section id="themes">
 <h2>Theme Builder</h2>
 <label>Background</label><input type="color" id="bgCol">
@@ -138,7 +122,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <button onclick="applyTheme()">Apply</button>
 </section>
 
-<!-- ================= REPORT ================= -->
 <section id="report">
 <h2>Report Generator</h2>
 <select id="reportType">
@@ -150,7 +133,6 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 <textarea id="reportOut" style="height:40vh"></textarea>
 </section>
 
-<!-- ================= EXPORT ================= -->
 <section id="export">
 <h2>Export / Import Vault</h2>
 <button onclick="exportVault()">Export current vault</button><br><br>
@@ -159,7 +141,7 @@ textarea,input{background:#020617;color:white;border:1px solid #374151;border-ra
 </section>
 
 <script>
-/* ---------- Tabs ---------- */
+/* Tabs */
 document.querySelectorAll('.tab').forEach(b=>{
  b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -169,10 +151,9 @@ document.querySelectorAll('.tab').forEach(b=>{
  };
 });
 
-/* ---------- Vaults ---------- */
+/* Vaults */
 let vaults=JSON.parse(localStorage.getItem("vaults")||"{}");
 let currentVault=localStorage.getItem("currentVault")||"default";
-
 if(!vaults[currentVault]) vaults[currentVault]={notes:[],feeds:[]};
 saveVaults();
 
@@ -182,7 +163,6 @@ function saveVaults(){
  renderVaults();
  rebuildEverything();
 }
-
 function createVault(){
  const n=document.getElementById("newVaultName").value.trim();
  if(!n) return;
@@ -190,7 +170,6 @@ function createVault(){
  currentVault=n;
  saveVaults();
 }
-
 function renderVaults(){
  const box=document.getElementById("vaultList");
  box.innerHTML="";
@@ -202,10 +181,9 @@ function renderVaults(){
  });
 }
 
-/* ---------- Helpers ---------- */
+/* Helpers */
 function allNotes(){return vaults[currentVault].notes;}
 function allFeeds(){return vaults[currentVault].feeds;}
-
 function tokenize(t){
  return t.toLowerCase()
   .replace(/[^a-z0-9\s]/g," ")
@@ -213,7 +191,7 @@ function tokenize(t){
   .filter(w=>w.length>2);
 }
 
-/* ---------- Keywords ---------- */
+/* Keywords */
 function keywordCounts(){
  let map=new Map();
  const add=w=>map.set(w,(map.get(w)||0)+1);
@@ -221,7 +199,6 @@ function keywordCounts(){
  allFeeds().forEach(f=>tokenize(f.title).forEach(add));
  return [...map.entries()].sort((a,b)=>b[1]-a[1]);
 }
-
 function buildKeywordList(){
  let box=document.getElementById("keywordBox");
  box.innerHTML="";
@@ -234,8 +211,6 @@ function buildKeywordList(){
  });
  drawKeywordChart();
 }
-
-/* ---------- Keyword chart ---------- */
 function drawKeywordChart(){
  let pairs=keywordCounts().slice(0,10);
  let c=document.getElementById("keywordChart");
@@ -251,7 +226,6 @@ function drawKeywordChart(){
   x.fillText(p[0].slice(0,5),20+i*30,215);
  });
 }
-
 function filterByKeyword(k){
  let box=document.getElementById("keywordResults");
  box.innerHTML="<h3>"+k+"</h3>";
@@ -264,21 +238,16 @@ function filterByKeyword(k){
  });
 }
 
-/* ---------- Co-occurrence matrix ---------- */
+/* Matrix */
 function coMatrix(){
  let kws=keywordCounts().slice(0,16).map(p=>p[0]);
  let mat={};
- kws.forEach(a=>{
-  mat[a]={};
-  kws.forEach(b=>mat[a][b]=0);
- });
+ kws.forEach(a=>{mat[a]={};kws.forEach(b=>mat[a][b]=0);});
  function addPairs(words){
   for(let i=0;i<words.length;i++){
    for(let j=i+1;j<words.length;j++){
     let a=words[i],b=words[j];
-    if(mat[a]&&mat[b]){
-     mat[a][b]++; mat[b][a]++;
-    }
+    if(mat[a]&&mat[b]){mat[a][b]++;mat[b][a]++;}
    }
   }
  }
@@ -286,7 +255,6 @@ function coMatrix(){
  allFeeds().forEach(f=>addPairs(tokenize(f.title)));
  return mat;
 }
-
 function renderMatrix(){
  let m=coMatrix();
  let kws=Object.keys(m);
@@ -295,276 +263,4 @@ function renderMatrix(){
  html+="</tr>";
  kws.forEach(a=>{
   html+="<tr><th>"+a+"</th>";
-  kws.forEach(b=>html+="<td>"+m[a][b]+"</td>");
-  html+="</tr>";
- });
- html+="</table>";
- document.getElementById("matrixBox").innerHTML=html;
-}
-
-/* ---------- Entities ---------- */
-function detectEntities(){
- let text=allNotes().map(n=>n.title+" "+n.body).join(" ");
- let persons=[...text.matchAll(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g)].map(m=>m[0]);
- let orgs=[...text.matchAll(/\b[A-Z][A-Za-z]+ (Bank|Force|Ministry|Agency|Ltd|Inc|Corp)\b/g)].map(m=>m[0]);
- let years=[...text.matchAll(/\b(19|20)\d{2}\b/g)].map(m=>m[0]);
- let emails=[...text.matchAll(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)].map(m=>m[0]);
- let urls=[...text.matchAll(/https?:\/\/[^\s]+/g)].map(m=>m[0]);
- document.getElementById("entityBox").innerHTML=
-  "<b>Persons:</b> "+[...new Set(persons)].join(", ")+"<br><br>"+
-  "<b>Orgs:</b> "+[...new Set(orgs)].join(", ")+"<br><br>"+
-  "<b>Years:</b> "+[...new Set(years)].join(", ")+"<br><br>"+
-  "<b>Emails:</b> "+emails.join(", ")+"<br><br>"+
-  "<b>URLs:</b> "+urls.join(", ");
-}
-
-/* ---------- Graph physics ---------- */
-function getEdges(){
- let m=coMatrix();
- let edges=[];
- Object.keys(m).forEach(a=>{
-  Object.keys(m[a]).forEach(b=>{
-   if(m[a][b]>0) edges.push({a,b});
-  });
- });
- return edges;
-}
-
-function buildGraphPhysics(){
- let cvs=document.getElementById("graphCanvas");
- let ctx=cvs.getContext("2d");
- let words=keywordCounts().slice(0,14).map(p=>p[0]);
- let nodes=words.map(k=>({k,x:Math.random()*300+20,y:Math.random()*250+20,vx:0,vy:0}));
-
- let zoom=1, dragging=null;
-
- cvs.onwheel=e=>{zoom*=e.deltaY>0?0.9:1.1;};
- cvs.onmousedown=e=>{
-  let mx=e.offsetX/zoom, my=e.offsetY/zoom;
-  nodes.forEach(n=>{
-   if(Math.hypot(mx-n.x,my-n.y)<10) dragging=n;
-  });
- };
- cvs.onmouseup=()=>dragging=null;
- cvs.onmousemove=e=>{
-  if(dragging){
-   dragging.x=e.offsetX/zoom;
-   dragging.y=e.offsetY/zoom;
-  }
- };
-
- function tick(){
-  nodes.forEach(a=>{
-   nodes.forEach(b=>{
-    if(a===b) return;
-    let dx=a.x-b.x, dy=a.y-b.y;
-    let d=Math.hypot(dx,dy)+0.01;
-    let f=15/(d*d);
-    a.vx+=f*dx/d; a.vy+=f*dy/d;
-   });
-  });
-
-  nodes.forEach(n=>{
-   n.x+=n.vx; n.y+=n.vy;
-   n.vx*=0.9; n.vy*=0.9;
-  });
-
-  ctx.setTransform(zoom,0,0,zoom,0,0);
-  ctx.clearRect(0,0,2000,2000);
-
-  ctx.strokeStyle="#1f2937";
-  getEdges().forEach(e=>{
-   let A=nodes.find(n=>n.k===e.a);
-   let B=nodes.find(n=>n.k===e.b);
-   if(A&&B){
-    ctx.beginPath();
-    ctx.moveTo(A.x,A.y);
-    ctx.lineTo(B.x,B.y);
-    ctx.stroke();
-   }
-  });
-
-  nodes.forEach(n=>{
-   ctx.beginPath();
-   ctx.fillStyle="#38bdf8";
-   ctx.arc(n.x,n.y,8,0,6.28);
-   ctx.fill();
-   ctx.fillStyle="white";
-   ctx.fillText(n.k,n.x+10,n.y+4);
-  });
-
-  requestAnimationFrame(tick);
- }
- tick();
-}
-
-/* ---------- Calendar heatmap ---------- */
-function occurrencesFor(k){
- let arr=[];
- allNotes().forEach(n=>{
-  if((n.title+n.body).toLowerCase().includes(k))
-   arr.push(new Date(n.date||Date.now()).toDateString());
- });
- return new Set(arr);
-}
-function drawCalendar(){
- let k=document.getElementById("calKey").value.toLowerCase();
- let box=document.getElementById("calendarBox");
- box.innerHTML="<h3>"+k+"</h3>";
- let set=occurrencesFor(k);
- let div=document.createElement("div");
- div.className="heat";
- for(let i=0;i<365;i++){
-  let d=new Date(Date.now()-i*86400000).toDateString();
-  let cell=document.createElement("div");
-  cell.style.background=set.has(d)?"#38bdf8":"#1f2937";
-  div.appendChild(cell);
- }
- box.appendChild(div);
-}
-
-/* ---------- Attachments ---------- */
-let attachments=JSON.parse(localStorage.getItem("attachments")||"[]");
-
-function addAttachments(){
- let files=document.getElementById("filePicker").files;
- [...files].forEach(f=>{
-  let r=new FileReader();
-  r.onload=e=>{
-   attachments.push({name:f.name,type:f.type,data:e.target.result});
-   localStorage.setItem("attachments",JSON.stringify(attachments));
-   renderAttachments();
-  };
-  r.readAsDataURL(f);
- });
-}
-function renderAttachments(){
- let box=document.getElementById("attachmentList");
- box.innerHTML="";
- attachments.forEach((a,i)=>{
-  let d=document.createElement("div");
-  d.className="attachment";
-  d.innerHTML=`
-   <b>${a.name}</b><br>
-   ${a.type.startsWith("image")?`<img src="${a.data}" width="100">`:"[stored offline]"}<br>
-   <button onclick="attachments.splice(${i},1);localStorage.setItem('attachments',JSON.stringify(attachments));renderAttachments();">Delete</button>
-  `;
-  box.appendChild(d);
- });
-}
-renderAttachments();
-
-/* ---------- Map ---------- */
-let markers=JSON.parse(localStorage.getItem("markers")||"[]");
-function drawMap(){
- let c=document.getElementById("mapCanvas");
- let ctx=c.getContext("2d");
- ctx.fillStyle="#020617";
- ctx.fillRect(0,0,c.width,c.height);
- markers.forEach((m,i)=>{
-  ctx.fillStyle="#38bdf8";
-  ctx.beginPath();
-  ctx.arc(m.x,m.y,6,0,6.28);
-  ctx.fill();
-  ctx.fillText(m.label||("M"+(i+1)),m.x+8,m.y+4);
- });
-}
-drawMap();
-
-document.getElementById("mapCanvas").onclick=e=>{
- let r=e.target.getBoundingClientRect();
- let x=e.clientX-r.left, y=e.clientY-r.top;
- let label=prompt("Marker label?");
- markers.push({x,y,label});
- localStorage.setItem("markers",JSON.stringify(markers));
- drawMap();
-};
-
-/* ---------- Markdown ---------- */
-let preview=false;
-function togglePreview(){
- preview=!preview;
- if(preview){
-  document.getElementById("mdPreview").style.display="block";
-  document.getElementById("mdInput").style.display="none";
-  renderMarkdown();
- }else{
-  document.getElementById("mdPreview").style.display="none";
-  document.getElementById("mdInput").style.display="block";
- }
-}
-function renderMarkdown(){
- let t=document.getElementById("mdInput").value;
- let html=t
-  .replace(/^### (.*$)/gim,"<h3>$1</h3>")
-  .replace(/^## (.*$)/gim,"<h2>$1</h2>")
-  .replace(/^# (.*$)/gim,"<h1>$1</h1>")
-  .replace(/\*\*(.*)\*\*/gim,"<b>$1</b>")
-  .replace(/\*(.*)\*/gim,"<i>$1</i>")
-  .replace(/\n/g,"<br>");
- document.getElementById("mdPreview").innerHTML=html;
-}
-
-/* ---------- Compare ---------- */
-function compareTexts(){
- let A=document.getElementById("leftText").value.split(/\s+/);
- let B=document.getElementById("rightText").value.split(/\s+/);
- let onlyA=A.filter(w=>!B.includes(w));
- document.getElementById("compareResult").innerHTML="Unique in A: "+onlyA.join(", ");
-}
-
-/* ---------- Theme ---------- */
-function applyTheme(){
- document.body.style.background=document.getElementById("bgCol").value;
- document.body.style.color=document.getElementById("fgCol").value;
-}
-
-/* ---------- Report generator ---------- */
-function generateReport(){
- let t=document.getElementById("reportType").value;
- let s="";
- if(t==="Incident Summary")
-  s=`Title:\nDate:\nLocation:\nIncident type:\nActors:\nSummary:\nSources:\nAssessment:\nOutlook:`;
- if(t==="Country Situation Brief")
-  s=`Country:\nKey events:\nSecurity:\nEconomy:\nPolitics:\nMedia narrative:\nAssessment:\nForecast:`;
- if(t==="Entity Profile")
-  s=`Entity:\nType:\nAliases:\nLeaders:\nLocations:\nCapability:\nHistory:\nAssessment:`;
- document.getElementById("reportOut").value=s;
-}
-
-/* ---------- Export / Import ---------- */
-function exportVault(){
- let data=JSON.stringify(vaults[currentVault],null,2);
- let blob=new Blob([data],{type:"application/json"});
- let a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download=currentVault+".json";
- a.click();
-}
-function importVault(){
- let file=document.getElementById("importFile").files[0];
- if(!file)return;
- let r=new FileReader();
- r.onload=e=>{
-  let obj=JSON.parse(e.target.result);
-  let name=prompt("Name imported vault:");
-  vaults[name]=obj;
-  currentVault=name;
-  saveVaults();
- };
- r.readAsText(file);
-}
-
-/* ---------- Rebuild ---------- */
-function rebuildEverything(){
- buildKeywordList();
- renderMatrix();
- detectEntities();
- buildGraphPhysics();
-}
-renderVaults();
-rebuildEverything();
-</script>
-
-</body>
-</html>
+  kws.forEach(b=>html
