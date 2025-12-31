@@ -14,19 +14,158 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <style>
-body{background:#0b1220;color:#e5e7eb;margin:0;font-family:system-ui}
-header{display:flex;gap:6px;padding:8px;background:#0f172a;position:sticky;top:0;z-index:5}
-button{padding:6px 10px;border-radius:8px;border:1px solid #374151;background:#020617;color:white;cursor:pointer}
-button.active{background:#38bdf8;color:black}
-section{display:none;padding:12px}
-section.active{display:block}
-textarea,input{background:#020617;color:white;border:1px solid #374151;border-radius:8px;padding:8px}
-.keyword-pill{padding:6px 10px;background:#134e4a;border-radius:999px;margin:4px;display:inline-block;cursor:pointer}
-.graphBox{height:360px;border:1px solid #1f2937;border-radius:12px}
-#mapCanvas{border:1px solid #1f2937;border-radius:12px}
-.heat{display:grid;grid-template-columns:repeat(32,1fr);gap:2px}
-.heat div{width:10px;height:10px;border-radius:2px}
-.attachment{border:1px solid #1f2937;border-radius:12px;padding:6px;margin:4px}
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSINT Intelligence Workbench</title>
+
+<link rel="manifest" href="manifest.json">
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+<style>
+:root{
+  --bg:#05070e;
+  --panel:#0f172a;
+  --card:#0b1220;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#38bdf8;
+  --border:#1f2937;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+}
+
+.app{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.main-container{
+  width:100%;
+  max-width:960px;
+  padding:14px;
+  box-sizing:border-box;
+}
+
+/* Sticky top bar */
+header{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:8px;
+  justify-content:center;
+  position:sticky;
+  top:0;
+  z-index:10;
+  backdrop-filter:blur(14px);
+  background:rgba(3,7,18,.45);
+  border-bottom:1px solid var(--border);
+}
+
+/* Buttons */
+button{
+  padding:8px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:white;
+  cursor:pointer;
+  transition:.15s;
+}
+button:hover{
+  background:#020617;
+  transform:translateY(-1px);
+}
+button.active{
+  background:var(--accent);
+  color:#020617;
+}
+
+/* Card-like Sections */
+section{
+  display:none;
+  margin-top:14px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+}
+section.active{display:block;}
+
+/* Headings */
+h1,h2,h3{
+  margin-top:4px;
+  letter-spacing:.3px;
+}
+
+/* Inputs + Textareas */
+textarea,input{
+  background:#020617;
+  color:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+  width:100%;
+  box-sizing:border-box;
+  margin-top:6px;
+}
+
+/* Keyword Pills */
+.keyword-pill{
+  padding:8px 12px;
+  background:#042f2e;
+  border-radius:999px;
+  margin:4px;
+  display:inline-block;
+  cursor:pointer;
+  border:1px solid #0d9488;
+}
+
+/* Panels / Canvases */
+.graphBox,#mapCanvas,#keywordChart{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#020617;
+  width:100%;
+}
+
+/* Attachments */
+.attachment{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:10px;
+  margin:6px 0;
+  background:#020617;
+}
+
+/* Heat Grid */
+.heat{
+  display:grid;
+  grid-template-columns:repeat(32,1fr);
+  gap:2px;
+}
+.heat div{
+  width:10px;height:10px;border-radius:3px;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+<div class="main-container">
 </style>
 </head>
 
@@ -264,3 +403,4 @@ function renderMatrix(){
  kws.forEach(a=>{
   html+="<tr><th>"+a+"</th>";
   kws.forEach(b=>html
+</div></div>
