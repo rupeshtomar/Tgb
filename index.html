@@ -1,2025 +1,628 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OSINT Intelligence Workbench</title>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-
-<!-- PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-:root {
-  --bg-primary: #0a0e27;
-  --bg-secondary: #141b34;
-  --bg-tertiary: #1a2342;
-  --accent-primary: #00d4ff;
-  --accent-secondary: #7b2ff7;
-  --text-primary: #ffffff;
-  --text-secondary: #a8b2d1;
-  --text-muted: #6b7794;
-  --border: rgba(0, 212, 255, 0.1);
-  --shadow: rgba(0, 212, 255, 0.15);
-  --success: #00ff88;
-  --warning: #ffaa00;
-  --danger: #ff4757;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1128 100%);
-  color: var(--text-primary);
-  overflow: hidden;
-}
-
-/* Animated Background */
-.bg-animation {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.3;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(123, 47, 247, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
-  animation: bgPulse 15s ease-in-out infinite;
-}
-
-@keyframes bgPulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.5; }
-}
-
-/* Login Screen */
-#loginScreen {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(20px);
-}
-
-.login-container {
-  background: rgba(20, 27, 52, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 48px;
-  text-align: center;
-  box-shadow: 0 8px 32px var(--shadow);
-  animation: slideUp 0.5s ease-out;
-  max-width: 420px;
-  width: 90%;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.login-logo {
-  font-size: 64px;
-  margin-bottom: 16px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.login-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.login-subtitle {
-  color: var(--text-secondary);
-  margin-bottom: 32px;
-  font-size: 16px;
-}
-
-.btn-google {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  border: none;
-  padding: 16px 32px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
-}
-
-.btn-google:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(0, 212, 255, 0.5);
-}
-
-/* App Container */
-.app {
-  display: none;
-  height: 100vh;
-  position: relative;
-  z-index: 1;
-}
-
-.app-grid {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  height: 100vh;
-  gap: 0;
-}
-
-/* Sidebar */
-.sidebar {
-  background: rgba(20, 27, 52, 0.6);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid var(--border);
-  padding: 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-.logo-section {
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
-}
-
-.user-info {
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 8px;
-  background: rgba(0, 212, 255, 0.05);
-  border-radius: 8px;
-  margin-bottom: 16px;
-  word-break: break-all;
-}
-
-.nav-item {
-  padding: 14px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.nav-item:hover {
-  background: rgba(0, 212, 255, 0.08);
-  border-color: var(--border);
-  color: var(--text-primary);
-  transform: translateX(4px);
-}
-
-.nav-item.active {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(123, 47, 247, 0.15));
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-
-.nav-icon {
-  font-size: 18px;
-  width: 24px;
-  text-align: center;
-}
-
-.nav-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 16px 0;
-}
-
-/* Main Content */
-.main-content {
-  overflow-y: auto;
-  padding: 32px;
-  position: relative;
-}
-
-.main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-.section {
-  display: none;
-  animation: fadeIn 0.4s ease-out;
-}
-
-.section.active {
-  display: block;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.section-header {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.section-subtitle {
-  color: var(--text-secondary);
-  font-size: 16px;
-}
-
-/* Cards */
-.card {
-  background: rgba(20, 27, 52, 0.6);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  border-color: var(--accent-primary);
-  box-shadow: 0 8px 32px var(--shadow);
-  transform: translateY(-2px);
-}
-
-/* Input Elements */
-.input-group {
-  margin-bottom: 24px;
-}
-
-.input-label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-input[type="text"],
-input[type="file"],
-input[type="color"],
-textarea,
-select {
-  width: 100%;
-  padding: 14px 16px;
-  background: rgba(10, 14, 39, 0.5);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-  transition: all 0.3s ease;
-  font-family: inherit;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
-
-/* Buttons */
-.btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--accent-primary);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn:hover {
-  background: rgba(0, 212, 255, 0.2);
-  border-color: var(--accent-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  border: none;
-}
-
-.btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
-}
-
-.btn-danger {
-  background: rgba(255, 71, 87, 0.1);
-  color: var(--danger);
-  border-color: rgba(255, 71, 87, 0.3);
-}
-
-.btn-danger:hover {
-  background: rgba(255, 71, 87, 0.2);
-  border-color: var(--danger);
-}
-
-.btn-small {
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.button-group {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Vault List */
-.vault-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.vault-item {
-  background: rgba(0, 212, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-
-.vault-item:hover {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: var(--accent-primary);
-  transform: translateY(-4px);
-}
-
-.vault-item.active {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(123, 47, 247, 0.2));
-  border-color: var(--accent-primary);
-}
-
-.vault-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
-.vault-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* Keywords */
-.keyword-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.keyword-tag {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(123, 47, 247, 0.15));
-  border: 1px solid var(--accent-primary);
-  border-radius: 20px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  animation: scaleIn 0.3s ease-out;
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.keyword-text {
-  color: var(--text-primary);
-}
-
-.keyword-delete {
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  font-size: 16px;
-}
-
-.keyword-delete:hover {
-  opacity: 1;
-  color: var(--danger);
-}
-
-/* Graph Canvas */
-canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  background: rgba(10, 14, 39, 0.5);
-  border: 1px solid var(--border);
-}
-
-/* Entity Results */
-.entity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.entity-item {
-  background: rgba(0, 212, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.entity-type {
-  font-size: 12px;
-  color: var(--accent-primary);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.entity-value {
-  font-size: 16px;
-  color: var(--text-primary);
-  margin-top: 4px;
-}
-
-/* Compare View */
-.compare-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.compare-result {
-  background: rgba(0, 212, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 24px;
-}
-
-/* Attachments */
-.attachment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.attachment-item {
-  background: rgba(0, 212, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.attachment-icon {
-  font-size: 32px;
-}
-
-.attachment-info {
-  flex: 1;
-}
-
-.attachment-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.attachment-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: 16px;
-}
-
-/* Loading Spinner */
-.spinner {
-  border: 3px solid rgba(0, 212, 255, 0.1);
-  border-top: 3px solid var(--accent-primary);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .app-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .sidebar {
-    display: none;
-  }
-  
-  .compare-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER | OSINT Intelligence Workbench</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' },
+                        primary: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        accent: { 400: '#818cf8', 500: '#6366f1' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Graph Container */
+        #network-graph { height: 500px; width: 100%; outline: none; }
+        
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-200 antialiased overflow-hidden selection:bg-primary-500 selection:text-white" x-data="app()">
 
-<div class="bg-animation"></div>
+    <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="glass flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl transform transition-all duration-300 pointer-events-auto border-l-4"
+                 :class="{'border-green-500': toast.type === 'success', 'border-red-500': toast.type === 'error', 'border-blue-500': toast.type === 'info'}"
+                 x-show="toast.visible"
+                 x-transition:enter="translate-x-full opacity-0"
+                 x-transition:enter-end="translate-x-0 opacity-100"
+                 x-transition:leave="translate-x-full opacity-0">
+                <i :class="toast.icon" class="text-lg"></i>
+                <div>
+                    <h4 class="font-semibold text-sm" x-text="toast.title"></h4>
+                    <p class="text-xs text-slate-400" x-text="toast.message"></p>
+                </div>
+            </div>
+        </template>
+    </div>
 
-<!-- Login Screen -->
-<div id="loginScreen">
-  <div class="login-container">
-    <div class="login-logo">🕵️</div>
-    <h1 class="login-title">OSINT Workbench</h1>
-    <p class="login-subtitle">Advanced Intelligence & Investigation Platform</p>
-    <button class="btn-google" onclick="googleLogin()">
-      🔑 Sign in with Google
-    </button>
-    <p id="loginStatus" style="color: var(--text-muted); margin-top: 20px; font-size: 14px;"></p>
-  </div>
-</div>
-
-<!-- App -->
-<div class="app" id="app">
-  <div class="app-grid">
-    
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo-section">
-        <div class="logo-text">🕵️ OSINT Workbench</div>
-      </div>
-      
-      <div class="user-info" id="userEmail"></div>
-      
-      <div class="nav-item active" data-section="dashboard">
-        <span class="nav-icon">📊</span>
-        <span>Dashboard</span>
-      </div>
-      
-      <div class="nav-item" data-section="vaults">
-        <span class="nav-icon">🗄️</span>
-        <span>Vaults</span>
-      </div>
-      
-      <div class="nav-item" data-section="notes">
-        <span class="nav-icon">📝</span>
-        <span>Notes</span>
-      </div>
-      
-      <div class="nav-item" data-section="keywords">
-        <span class="nav-icon">🔑</span>
-        <span>Keywords</span>
-      </div>
-      
-      <div class="nav-item" data-section="graph">
-        <span class="nav-icon">🕸️</span>
-        <span>Graph View</span>
-      </div>
-      
-      <div class="nav-item" data-section="entities">
-        <span class="nav-icon">🧠</span>
-        <span>Entity Extraction</span>
-      </div>
-      
-      <div class="nav-item" data-section="attachments">
-        <span class="nav-icon">📎</span>
-        <span>Attachments</span>
-      </div>
-      
-      <div class="nav-item" data-section="compare">
-        <span class="nav-icon">⚖️</span>
-        <span>Compare</span>
-      </div>
-      
-      <div class="nav-item" data-section="pdf">
-        <span class="nav-icon">📕</span>
-        <span>PDF Extract</span>
-      </div>
-      
-      <div class="nav-item" data-section="report">
-        <span class="nav-icon">📄</span>
-        <span>Reports</span>
-      </div>
-      
-      <div class="nav-item" data-section="export">
-        <span class="nav-icon">💾</span>
-        <span>Import/Export</span>
-      </div>
-      
-      <div class="nav-item" data-section="timeline">
-        <span class="nav-icon">⏱️</span>
-        <span>Timeline</span>
-      </div>
-      
-      <div class="nav-item" data-section="search">
-        <span class="nav-icon">🔍</span>
-        <span>Search</span>
-      </div>
-      
-      <div class="nav-item" data-section="stats">
-        <span class="nav-icon">📊</span>
-        <span>Statistics</span>
-      </div>
-      
-      <div class="nav-divider"></div>
-      
-      <div class="nav-item" onclick="toggleTheme()">
-        <span class="nav-icon">🌓</span>
-        <span>Toggle Theme</span>
-      </div>
-      
-      <div class="nav-item" onclick="logout()">
-        <span class="nav-icon">🚪</span>
-        <span>Logout</span>
-      </div>
-    </aside>
-    
-    <!-- Main Content -->
-    <main class="main-content">
-      
-      <!-- Dashboard -->
-      <section class="section active" id="dashboard">
-        <div class="section-header">
-          <h1 class="section-title">Dashboard</h1>
-          <p class="section-subtitle">Your intelligence workspace overview</p>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 16px;">Quick Stats</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-            <div style="text-align: center; padding: 20px; background: rgba(0, 212, 255, 0.05); border-radius: 12px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
-              <div style="font-size: 24px; font-weight: 700; color: var(--accent-primary);" id="vaultCount">0</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Vaults</div>
+    <div x-show="!isAuthenticated" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+        <div class="relative glass p-8 rounded-2xl w-full max-w-md text-center shadow-2xl border border-primary-500/20">
+            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                <i class="ph ph-detective text-3xl"></i>
             </div>
-            <div style="text-align: center; padding: 20px; background: rgba(123, 47, 247, 0.05); border-radius: 12px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">🔑</div>
-              <div style="font-size: 24px; font-weight: 700; color: var(--accent-secondary);" id="keywordCount">0</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Keywords</div>
-            </div>
-            <div style="text-align: center; padding: 20px; background: rgba(0, 255, 136, 0.05); border-radius: 12px;">
-              <div style="font-size: 32px; margin-bottom: 8px;">📎</div>
-              <div style="font-size: 24px; font-weight: 700; color: var(--success);" id="attachmentCount">0</div>
-              <div style="font-size: 14px; color: var(--text-muted);">Attachments</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 12px;">Welcome to OSINT Workbench</h3>
-          <p style="color: var(--text-secondary); line-height: 1.6;">
-            A powerful intelligence gathering and analysis platform. Organize your research in vaults, 
-            track keywords, extract entities, analyze documents, and generate comprehensive reports.
-          </p>
-        </div>
-      </section>
-      
-      <!-- Vaults -->
-      <section class="section" id="vaults">
-        <div class="section-header">
-          <h1 class="section-title">Vaults</h1>
-          <p class="section-subtitle">Organize your intelligence data</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Create New Vault</label>
-            <div style="display: flex; gap: 12px;">
-              <input type="text" id="newVaultName" placeholder="Enter vault name...">
-              <button class="btn btn-primary" onclick="createVault()">Create</button>
-            </div>
-          </div>
-          
-          <div id="vaultList" class="vault-grid"></div>
-        </div>
-      </section>
-      
-      <!-- Notes -->
-      <section class="section" id="notes">
-        <div class="section-header">
-          <h1 class="section-title">Notes</h1>
-          <p class="section-subtitle">Markdown-powered intelligence notes</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Write Your Notes</label>
-            <textarea id="mdInput" placeholder="# Investigation Notes
-
-Write your intelligence notes here using Markdown...
-
-Use [[WikiLinks]] to connect related information."></textarea>
-          </div>
-          
-          <div class="button-group">
-            <button class="btn btn-primary" onclick="saveNote()">💾 Save Note</button>
-            <button class="btn" onclick="togglePreview()">👁️ Toggle Preview</button>
-          </div>
-          
-          <div id="mdPreview" style="display: none; margin-top: 24px; padding: 24px; background: rgba(0, 212, 255, 0.05); border-radius: 12px; border: 1px solid var(--border);"></div>
-        </div>
-      </section>
-      
-      <!-- Keywords -->
-      <section class="section" id="keywords">
-        <div class="section-header">
-          <h1 class="section-title">Keywords</h1>
-          <p class="section-subtitle">Track and analyze investigation keywords</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Add Keyword</label>
-            <div style="display: flex; gap: 12px;">
-              <input type="text" id="kwInput" placeholder="Enter keyword or entity...">
-              <button class="btn btn-primary" onclick="addKeyword()">Add</button>
-            </div>
-          </div>
-          
-          <div id="keywordContainer" class="keyword-container"></div>
-          
-          <canvas id="keywordChart" width="600" height="300"></canvas>
-        </div>
-      </section>
-      
-      <!-- Graph -->
-      <section class="section" id="graph">
-        <div class="section-header">
-          <h1 class="section-title">Graph View</h1>
-          <p class="section-subtitle">Visualize keyword relationships</p>
-        </div>
-        
-        <div class="card">
-          <button class="btn btn-primary" onclick="generateGraph()" style="margin-bottom: 24px;">🔄 Generate Graph</button>
-          <canvas id="graphCanvas" width="800" height="500"></canvas>
-        </div>
-      </section>
-      
-      <!-- Entities -->
-      <section class="section" id="entities">
-        <div class="section-header">
-          <h1 class="section-title">Entity Extraction</h1>
-          <p class="section-subtitle">Automatically detect entities in text</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Input Text</label>
-            <textarea id="entityInput" placeholder="Paste text here to extract entities like names, locations, organizations, dates, etc..."></textarea>
-          </div>
-          
-          <button class="btn btn-primary" onclick="detectEntities()">🧠 Extract Entities</button>
-          
-          <div id="entityResults" style="margin-top: 24px;"></div>
-        </div>
-      </section>
-      
-      <!-- Attachments -->
-      <section class="section" id="attachments">
-        <div class="section-header">
-          <h1 class="section-title">Attachments</h1>
-          <p class="section-subtitle">Manage investigation files</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Add Files</label>
-            <input type="file" id="filePicker" multiple>
-          </div>
-          
-          <button class="btn btn-primary" onclick="addAttachments()">📎 Add Attachments</button>
-          
-          <div id="attachmentList" class="attachment-list" style="margin-top: 24px;"></div>
-        </div>
-      </section>
-      
-      <!-- Compare -->
-      <section class="section" id="compare">
-        <div class="section-header">
-          <h1 class="section-title">Compare</h1>
-          <p class="section-subtitle">Side-by-side text comparison</p>
-        </div>
-        
-        <div class="card">
-          <div class="compare-grid">
-            <div class="input-group">
-              <label class="input-label">Text A</label>
-              <textarea id="leftText" placeholder="First text to compare..."></textarea>
-            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">AETHER</h1>
+            <p class="text-slate-400 mb-8">Advanced Open Source Intelligence Workbench</p>
             
-            <div class="input-group">
-              <label class="input-label">Text B</label>
-              <textarea id="rightText" placeholder="Second text to compare..."></textarea>
+            <div class="space-y-3">
+                <button @click="login('google')" class="w-full py-3 px-4 bg-white text-slate-900 rounded-lg font-semibold hover:bg-slate-100 transition flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-google-logo"></i> Sign in with Google
+                </button>
+                <button @click="login('offline')" class="w-full py-3 px-4 glass-card text-slate-300 rounded-lg font-medium hover:bg-white/5 transition border border-dashed border-slate-600 flex items-center justify-center gap-2">
+                    <i class="ph ph-wifi-slash"></i> Use Offline Mode
+                </button>
             </div>
-          </div>
-          
-          <button class="btn btn-primary" onclick="compareTexts()">⚖️ Compare</button>
-          
-          <div id="compareResult"></div>
+            <p class="mt-6 text-xs text-slate-500">Data stored locally in browser sandbox.</p>
         </div>
-      </section>
-      
-      <!-- PDF Extract -->
-      <section class="section" id="pdf">
-        <div class="section-header">
-          <h1 class="section-title">PDF Extract</h1>
-          <p class="section-subtitle">Extract text from PDF documents</p>
-        </div>
+    </div>
+
+    <div x-show="isAuthenticated" x-cloak class="flex h-screen bg-slate-950">
         
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Select PDF File</label>
-            <input type="file" id="pdfFile" accept="application/pdf">
-          </div>
-          
-          <button class="btn btn-primary" onclick="extractPdf()">📕 Extract Text</button>
-          
-          <div id="pdfStatus" style="margin: 16px 0; color: var(--text-muted);"></div>
-          
-          <div class="input-group" style="margin-top: 24px;">
-            <label class="input-label">Extracted Text</label>
-            <textarea id="pdfOutput" style="min-height: 400px;" readonly></textarea>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Reports -->
-      <section class="section" id="report">
-        <div class="section-header">
-          <h1 class="section-title">Report Generator</h1>
-          <p class="section-subtitle">Generate intelligence reports</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <label class="input-label">Report Type</label>
-            <select id="reportType">
-              <option>Incident Summary</option>
-              <option>Entity Profile</option>
-              <option>Threat Assessment</option>
-              <option>Timeline Analysis</option>
-            </select>
-          </div>
-          
-          <button class="btn btn-primary" onclick="generateReport()">📄 Generate Report</button>
-          
-          <div class="input-group" style="margin-top: 24px;">
-            <label class="input-label">Generated Report</label>
-            <textarea id="reportOut" style="min-height: 400px;"></textarea>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Import/Export -->
-      <section class="section" id="export">
-        <div class="section-header">
-          <h1 class="section-title">Import/Export</h1>
-          <p class="section-subtitle">Backup and restore your data</p>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 16px;">Export Data</h3>
-          <p style="color: var(--text-secondary); margin-bottom: 16px;">
-            Download all your vaults, keywords, and attachments as a JSON file.
-          </p>
-          <button class="btn btn-primary" onclick="exportVault()">⬇️ Export All Data</button>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 16px;">Import Data</h3>
-          <p style="color: var(--text-secondary); margin-bottom: 16px;">
-            Restore your data from a previously exported JSON file.
-          </p>
-          <div class="input-group">
-            <input type="file" id="importFile" accept="application/json">
-          </div>
-          <button class="btn btn-primary" onclick="importVault()">⬆️ Import Data</button>
-        </div>
-      </section>
-      
-      <!-- Timeline -->
-      <section class="section" id="timeline">
-        <div class="section-header">
-          <h1 class="section-title">Timeline Builder</h1>
-          <p class="section-subtitle">Create chronological event timelines</p>
-        </div>
-        
-        <div class="card">
-          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
-            <div class="input-group">
-              <label class="input-label">Date</label>
-              <input type="datetime-local" id="timelineDate">
+        <aside class="w-64 glass flex-shrink-0 flex flex-col border-r border-slate-800 z-20 transition-all duration-300" :class="{'w-20': sidebarCollapsed}">
+            <div class="h-16 flex items-center justify-center border-b border-slate-800/50">
+                <i class="ph-fill ph-fingerprint text-primary-400 text-2xl"></i>
+                <span x-show="!sidebarCollapsed" class="ml-3 font-bold text-lg tracking-wide text-white">AETHER</span>
             </div>
-            <div class="input-group">
-              <label class="input-label">Event Description</label>
-              <input type="text" id="timelineEvent" placeholder="Describe the event...">
+
+            <div class="p-4 border-b border-slate-800/50" x-show="!sidebarCollapsed">
+                <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-800">
+                    <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Current Vault</div>
+                    <div class="font-medium text-primary-400 truncate" x-text="currentVault || 'Select a Vault'"></div>
+                </div>
             </div>
-          </div>
-          
-          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-            <select id="timelineCategory" style="width: 200px;">
-              <option>🔴 Critical</option>
-              <option>🟡 Important</option>
-              <option>🟢 Normal</option>
-              <option>🔵 Info</option>
-            </select>
-            <button class="btn btn-primary" onclick="addTimelineEvent()">➕ Add Event</button>
-          </div>
-          
-          <div id="timelineDisplay"></div>
-        </div>
-      </section>
-      
-      <!-- Search -->
-      <section class="section" id="search">
-        <div class="section-header">
-          <h1 class="section-title">Universal Search</h1>
-          <p class="section-subtitle">Search across all your data</p>
-        </div>
-        
-        <div class="card">
-          <div class="input-group">
-            <input type="text" id="searchInput" placeholder="Search keywords, notes, attachments..." style="font-size: 18px; padding: 16px;">
-          </div>
-          
-          <button class="btn btn-primary" onclick="performSearch()">🔍 Search</button>
-          
-          <div id="searchResults" style="margin-top: 24px;"></div>
-        </div>
-      </section>
-      
-      <!-- Statistics -->
-      <section class="section" id="stats">
-        <div class="section-header">
-          <h1 class="section-title">Analytics & Statistics</h1>
-          <p class="section-subtitle">Insights from your intelligence data</p>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 16px;">Activity Heatmap</h3>
-          <canvas id="heatmapCanvas" width="800" height="200"></canvas>
-        </div>
-        
-        <div class="card">
-          <h3 style="margin-bottom: 16px;">Word Frequency Analysis</h3>
-          <button class="btn btn-primary" onclick="analyzeWordFrequency()" style="margin-bottom: 16px;">📊 Analyze All Notes</button>
-          <canvas id="wordFreqChart" width="800" height="300"></canvas>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-          <div class="card">
-            <h3 style="margin-bottom: 16px;">Data Summary</h3>
-            <div id="dataSummary"></div>
-          </div>
-          
-          <div class="card">
-            <h3 style="margin-bottom: 16px;">Recent Activity</h3>
-            <div id="recentActivity"></div>
-          </div>
-        </div>
-      </section>
-      
-    </main>
-  </div>
-</div>
+
+            <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-3">
+                <template x-for="item in navItems" :key="item.id">
+                    <button @click="activeTab = item.id" 
+                            class="w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative"
+                            :class="activeTab === item.id ? 'bg-primary-500/10 text-primary-400' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+                        <i :class="item.icon" class="text-xl"></i>
+                        <span x-show="!sidebarCollapsed" class="ml-3 font-medium text-sm" x-text="item.label"></span>
+                        <div x-show="activeTab === item.id" class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-r-full"></div>
+                    </button>
+                </template>
+            </nav>
+
+            <div class="p-3 border-t border-slate-800/50 flex justify-between">
+                <button @click="sidebarCollapsed = !sidebarCollapsed" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5">
+                    <i class="ph ph-arrows-left-right"></i>
+                </button>
+                <button @click="logout" class="p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10">
+                    <i class="ph ph-sign-out"></i>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+            
+            <header class="h-16 border-b border-slate-800/50 flex items-center justify-between px-6 glass sticky top-0 z-10">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-semibold text-white" x-text="navItems.find(i => i.id === activeTab)?.label"></h2>
+                    <span class="text-slate-600">/</span>
+                    <span class="text-sm text-slate-400" x-text="currentVault"></span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" placeholder="Global Search..." x-model="searchQuery" @keydown.enter="performSearch"
+                               class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-10 pr-4 py-1.5 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 w-64 transition-all">
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 scroll-smooth">
+                
+                <div x-show="activeTab === 'dashboard'" class="space-y-6 animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card p-5 rounded-xl border-l-4 border-blue-500">
+                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Active Vaults</div>
+                            <div class="text-3xl font-bold text-white mt-1" x-text="Object.keys(vaults).length"></div>
+                        </div>
+                        <div class="glass-card p-5 rounded-xl border-l-4 border-purple-500">
+                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Tracked Keywords</div>
+                            <div class="text-3xl font-bold text-white mt-1" x-text="keywords.length"></div>
+                        </div>
+                        <div class="glass-card p-5 rounded-xl border-l-4 border-green-500">
+                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Intelligence Notes</div>
+                            <div class="text-3xl font-bold text-white mt-1" x-text="totalNotes"></div>
+                        </div>
+                        <div class="glass-card p-5 rounded-xl border-l-4 border-orange-500">
+                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Files Captured</div>
+                            <div class="text-3xl font-bold text-white mt-1" x-text="attachments.length"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-card p-6 rounded-xl">
+                            <h3 class="font-semibold mb-4 flex items-center gap-2"><i class="ph ph-clock text-primary-400"></i> Recent Activity</h3>
+                            <ul class="space-y-3">
+                                <template x-for="log in activityLog.slice().reverse().slice(0, 5)" :key="log.timestamp">
+                                    <li class="flex items-start gap-3 text-sm border-b border-white/5 pb-2">
+                                        <span class="w-2 h-2 rounded-full bg-primary-500 mt-1.5"></span>
+                                        <div class="flex-1">
+                                            <div class="text-slate-200" x-text="log.action"></div>
+                                            <div class="text-slate-500 text-xs" x-text="new Date(log.timestamp).toLocaleString()"></div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                        <div class="glass-card p-6 rounded-xl flex items-center justify-center text-center">
+                            <div>
+                                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="ph ph-rocket-launch text-2xl text-primary-400"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-white">Ready for Investigation</h3>
+                                <p class="text-slate-400 text-sm mt-2 max-w-xs mx-auto">Select a tool from the sidebar to begin processing data.</p>
+                                <button @click="activeTab = 'vaults'" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition">
+                                    Manage Vaults
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'vaults'" class="space-y-6">
+                    <div class="glass-card p-6 rounded-xl">
+                        <div class="flex gap-4 items-end mb-6">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">New Operation Name</label>
+                                <input type="text" x-model="newVaultName" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-1 focus:ring-primary-500 focus:outline-none" placeholder="e.g. Operation Bluebird">
+                            </div>
+                            <button @click="createVault" class="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-medium transition">Create Vault</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <template x-for="(data, name) in vaults" :key="name">
+                                <div @click="switchVault(name)" class="relative group p-5 rounded-xl border transition-all cursor-pointer hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/10 bg-slate-900/40"
+                                     :class="currentVault === name ? 'border-primary-500 ring-1 ring-primary-500/20' : 'border-slate-800'">
+                                    <div class="flex justify-between items-start">
+                                        <i class="ph-fill ph-folder text-3xl" :class="currentVault === name ? 'text-primary-400' : 'text-slate-600 group-hover:text-primary-400'"></i>
+                                        <button @click.stop="deleteVault(name)" class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition"><i class="ph-bold ph-trash"></i></button>
+                                    </div>
+                                    <h4 class="mt-3 font-semibold text-white truncate" x-text="name"></h4>
+                                    <div class="mt-2 text-xs text-slate-500 flex justify-between">
+                                        <span x-text="(data.notes || []).length + ' notes'"></span>
+                                        <span x-text="new Date(data.created).toLocaleDateString()"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'notes'" class="h-full flex flex-col gap-4">
+                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 h-full min-h-[500px]">
+                        <div class="glass-card flex flex-col rounded-xl overflow-hidden">
+                            <div class="p-3 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Editor</span>
+                                <div class="flex gap-2">
+                                    <button @click="insertMD('**', '**')" class="p-1 text-slate-400 hover:text-white" title="Bold"><i class="ph-bold ph-text-b"></i></button>
+                                    <button @click="insertMD('*', '*')" class="p-1 text-slate-400 hover:text-white" title="Italic"><i class="ph-bold ph-text-italic"></i></button>
+                                    <button @click="insertMD('# ')" class="p-1 text-slate-400 hover:text-white" title="Heading"><i class="ph-bold ph-text-h-one"></i></button>
+                                    <button @click="insertMD('- [ ] ')" class="p-1 text-slate-400 hover:text-white" title="Task"><i class="ph-bold ph-check-square"></i></button>
+                                </div>
+                            </div>
+                            <textarea x-model="noteInput" class="flex-1 bg-transparent p-4 resize-none focus:outline-none font-mono text-sm leading-relaxed" placeholder="# Intel Log&#10;&#10;Start typing your findings..."></textarea>
+                            <div class="p-3 border-t border-slate-800 bg-slate-900/30 text-right">
+                                <button @click="saveNote" class="bg-primary-600 hover:bg-primary-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition">Save Log</button>
+                            </div>
+                        </div>
+
+                        <div class="glass-card flex flex-col rounded-xl overflow-hidden">
+                             <div class="p-3 bg-slate-900/50 border-b border-slate-800">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Preview</span>
+                            </div>
+                            <div class="flex-1 p-6 overflow-y-auto prose prose-invert prose-sm max-w-none" x-html="renderMarkdown(noteInput)"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card rounded-xl p-4">
+                        <h3 class="font-semibold mb-4 text-sm uppercase text-slate-500">History in <span x-text="currentVault" class="text-primary-400"></span></h3>
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            <template x-for="(note, idx) in (vaults[currentVault]?.notes || []).slice().reverse()" :key="idx">
+                                <div class="p-3 rounded bg-slate-800/50 border border-slate-700/50 hover:border-slate-600 transition">
+                                    <div class="text-xs text-slate-500 mb-1" x-text="new Date(note.timestamp).toLocaleString()"></div>
+                                    <div class="text-sm text-slate-300 truncate font-mono" x-text="note.content.substring(0, 100) + '...'"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'graph'" class="h-full flex flex-col">
+                    <div class="glass-card p-4 rounded-xl flex-1 flex flex-col relative overflow-hidden">
+                        <div class="absolute top-4 left-4 z-10 glass p-2 rounded-lg flex gap-2">
+                            <input type="text" x-model="keywordInput" @keydown.enter="addKeyword" placeholder="Add entity..." class="bg-slate-900 border border-slate-700 rounded px-3 py-1 text-sm focus:border-primary-500 focus:outline-none w-40">
+                            <button @click="addKeyword" class="bg-primary-600 hover:bg-primary-500 text-white px-3 py-1 rounded text-sm"><i class="ph-bold ph-plus"></i></button>
+                            <button @click="refreshGraph" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm"><i class="ph-bold ph-arrows-clockwise"></i></button>
+                        </div>
+                        <div id="network-graph" class="flex-1 bg-slate-900/50 rounded-lg border border-slate-800"></div>
+                        <div class="mt-4 flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+                            <template x-for="(k, i) in keywords" :key="i">
+                                <span class="px-2 py-1 bg-primary-500/10 border border-primary-500/30 text-primary-400 text-xs rounded-full flex items-center gap-1 group">
+                                    <span x-text="k"></span>
+                                    <button @click="removeKeyword(i)" class="hover:text-red-400"><i class="ph-bold ph-x"></i></button>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'tools'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <div class="glass-card p-6 rounded-xl flex flex-col h-[600px]">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph ph-brain text-accent-400"></i> Entity Extraction</h3>
+                        <textarea x-model="extractionText" class="w-full h-40 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-mono focus:border-accent-500 focus:outline-none mb-4" placeholder="Paste intelligence text here..."></textarea>
+                        <button @click="extractEntities" class="w-full py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-lg mb-4 font-medium">Analyze Text</button>
+                        
+                        <div class="flex-1 overflow-y-auto space-y-3 bg-slate-900/30 rounded-lg p-3 border border-slate-800">
+                             <template x-for="(items, type) in extractedEntities" :key="type">
+                                <div x-show="items.length > 0">
+                                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2" x-text="type"></div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <template x-for="item in items" :key="item">
+                                            <span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-accent-300 font-mono select-all cursor-pointer hover:border-accent-500 transition" x-text="item" @click="addKeywordFromEntity(item)"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                             </template>
+                             <div x-show="!hasEntities" class="text-center text-slate-500 mt-10 italic">No entities extracted yet.</div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 rounded-xl flex flex-col h-[600px]">
+                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph ph-file-pdf text-red-400"></i> PDF Text Scraper</h3>
+                        <div class="relative border-2 border-dashed border-slate-700 rounded-lg p-6 hover:bg-slate-800/50 transition text-center cursor-pointer mb-4">
+                            <input type="file" @change="handlePdfUpload" accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <i class="ph ph-upload-simple text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-sm text-slate-400">Drop PDF or Click to Upload</p>
+                        </div>
+                        <div class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-y-auto font-mono text-xs leading-relaxed text-slate-300 whitespace-pre-wrap select-text" x-text="pdfContent || '// Extracted text will appear here...'"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
 
 <script>
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyD6F2TCqGB0HThGj0usvLHl30ZOphFRVkM",
-  authDomain: "osint-workbench-dbe48.firebaseapp.com",
-  projectId: "osint-workbench-dbe48",
-  storageBucket: "osint-workbench-dbe48.firebasestorage.app",
-  messagingSenderId: "673794583008",
-  appId: "1:673794583008:web:dc67b8c5d739db44f2a385",
-  measurementId: "G-3TXVZ5D32B"
-};
+    // Set PDF Worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+    function app() {
+        return {
+            // State
+            isAuthenticated: false,
+            sidebarCollapsed: false,
+            activeTab: 'dashboard',
+            searchQuery: '',
+            
+            // Data Models
+            vaults: JSON.parse(localStorage.getItem('aether_vaults') || '{"Operation Alpha": {"notes": [], "created": "2024-01-01"}}'),
+            currentVault: localStorage.getItem('aether_current') || 'Operation Alpha',
+            keywords: JSON.parse(localStorage.getItem('aether_keywords') || '[]'),
+            attachments: JSON.parse(localStorage.getItem('aether_files') || '[]'),
+            activityLog: JSON.parse(localStorage.getItem('aether_log') || '[]'),
+            
+            // UI States
+            toasts: [],
+            navItems: [
+                { id: 'dashboard', label: 'Dashboard', icon: 'ph-bold ph-squares-four' },
+                { id: 'vaults', label: 'Vaults', icon: 'ph-bold ph-safe' },
+                { id: 'notes', label: 'Intel Notes', icon: 'ph-bold ph-notepad' },
+                { id: 'graph', label: 'Link Analysis', icon: 'ph-bold ph-graph' },
+                { id: 'tools', label: 'Extraction Tools', icon: 'ph-bold ph-wrench' },
+            ],
+            
+            // Inputs
+            newVaultName: '',
+            noteInput: '',
+            keywordInput: '',
+            extractionText: '',
+            extractedEntities: { emails: [], urls: [], ips: [], phones: [] },
+            pdfContent: '',
+            network: null, // Vis.js instance
 
-// Global State
-let vaults = JSON.parse(localStorage.getItem('vaults') || '{"default": {"notes": []}}');
-let currentVault = localStorage.getItem('currentVault') || 'default';
-let keywords = JSON.parse(localStorage.getItem('keywords') || '[]');
-let attachments = JSON.parse(localStorage.getItem('attachments') || '[]');
-let timelineEvents = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
-let activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
+            get totalNotes() {
+                let count = 0;
+                for (let v in this.vaults) count += (this.vaults[v].notes || []).length;
+                return count;
+            },
 
-// Authentication
-function googleLogin() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err => {
-    document.getElementById('loginStatus').textContent = 'Login failed: ' + err.message;
-  });
-}
+            get hasEntities() {
+                return Object.values(this.extractedEntities).some(arr => arr.length > 0);
+            },
 
-function logout() {
-  auth.signOut();
-}
+            init() {
+                this.$watch('vaults', val => localStorage.setItem('aether_vaults', JSON.stringify(val)));
+                this.$watch('keywords', val => {
+                    localStorage.setItem('aether_keywords', JSON.stringify(val));
+                    this.refreshGraph();
+                });
+                this.$watch('attachments', val => localStorage.setItem('aether_files', JSON.stringify(val)));
+                this.$watch('currentVault', val => localStorage.setItem('aether_current', val));
+                this.$watch('activityLog', val => localStorage.setItem('aether_log', JSON.stringify(val)));
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('userEmail').textContent = user.email;
-    updateDashboard();
-  } else {
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-});
+                // Check auth persistence (Simulated)
+                if (localStorage.getItem('aether_auth') === 'true') {
+                    this.isAuthenticated = true;
+                    setTimeout(() => this.refreshGraph(), 500);
+                }
+            },
 
-// Navigation
-document.querySelectorAll('.nav-item').forEach(item => {
-  if (item.dataset.section) {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      
-      item.classList.add('active');
-      document.getElementById(item.dataset.section).classList.add('active');
-    });
-  }
-});
+            // --- Authentication ---
+            login(method) {
+                // In a real app, integrate Firebase Auth here.
+                // For this demo, we simulate success.
+                this.isAuthenticated = true;
+                localStorage.setItem('aether_auth', 'true');
+                this.logActivity(`User login via ${method}`);
+                this.notify('success', 'Welcome Agent', 'System initialized successfully.');
+                
+                // Init Graph after UI renders
+                setTimeout(() => this.initGraph(), 100);
+            },
 
-// Theme Toggle
-let isDark = true;
-function toggleTheme() {
-  isDark = !isDark;
-  if (!isDark) {
-    document.documentElement.style.setProperty('--bg-primary', '#f0f4f8');
-    document.documentElement.style.setProperty('--bg-secondary', '#ffffff');
-    document.documentElement.style.setProperty('--text-primary', '#1a202c');
-    document.documentElement.style.setProperty('--text-secondary', '#4a5568');
-  } else {
-    document.documentElement.style.setProperty('--bg-primary', '#0a0e27');
-    document.documentElement.style.setProperty('--bg-secondary', '#141b34');
-    document.documentElement.style.setProperty('--text-primary', '#ffffff');
-    document.documentElement.style.setProperty('--text-secondary', '#a8b2d1');
-  }
-}
+            logout() {
+                this.isAuthenticated = false;
+                localStorage.removeItem('aether_auth');
+                this.notify('info', 'Logged Out', 'Session terminated.');
+            },
 
-// Dashboard
-function updateDashboard() {
-  document.getElementById('vaultCount').textContent = Object.keys(vaults).length;
-  document.getElementById('keywordCount').textContent = keywords.length;
-  document.getElementById('attachmentCount').textContent = attachments.length;
-}
+            // --- Vault Management ---
+            createVault() {
+                if (!this.newVaultName.trim()) return this.notify('error', 'Error', 'Vault name required');
+                if (this.vaults[this.newVaultName]) return this.notify('error', 'Error', 'Vault exists');
 
-// Vaults
-function createVault() {
-  const name = document.getElementById('newVaultName').value.trim();
-  if (!name) return alert('Please enter a vault name');
-  if (vaults[name]) return alert('Vault already exists');
-  
-  vaults[name] = { notes: [], created: new Date().toISOString() };
-  currentVault = name;
-  localStorage.setItem('vaults', JSON.stringify(vaults));
-  localStorage.setItem('currentVault', currentVault);
-  document.getElementById('newVaultName').value = '';
-  renderVaults();
-  updateDashboard();
-}
+                this.vaults[this.newVaultName] = { notes: [], created: new Date().toISOString() };
+                this.currentVault = this.newVaultName;
+                this.newVaultName = '';
+                this.logActivity(`Created vault: ${this.currentVault}`);
+                this.notify('success', 'Vault Created', 'Secure container ready.');
+            },
 
-function renderVaults() {
-  const list = document.getElementById('vaultList');
-  if (Object.keys(vaults).length === 0) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-text">No vaults yet</div></div>';
-    return;
-  }
-  
-  list.innerHTML = Object.keys(vaults).map(name => `
-    <div class="vault-item ${name === currentVault ? 'active' : ''}" onclick="selectVault('${name}')">
-      <div class="vault-icon">🗄️</div>
-      <div class="vault-name">${name}</div>
-      ${name === currentVault ? '<div style="color: var(--accent-primary); font-size: 12px; margin-top: 4px;">✓ Active</div>' : ''}
-    </div>
-  `).join('');
-}
+            switchVault(name) {
+                this.currentVault = name;
+                this.notify('info', 'Switched Vault', `Active: ${name}`);
+            },
 
-function selectVault(name) {
-  currentVault = name;
-  localStorage.setItem('currentVault', currentVault);
-  renderVaults();
-}
+            deleteVault(name) {
+                if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+                delete this.vaults[name];
+                // Force reactivity update
+                this.vaults = { ...this.vaults };
+                if (this.currentVault === name) this.currentVault = Object.keys(this.vaults)[0] || '';
+                this.logActivity(`Deleted vault: ${name}`);
+            },
 
-// Notes
-function saveNote() {
-  const content = document.getElementById('mdInput').value;
-  if (!vaults[currentVault]) vaults[currentVault] = { notes: [] };
-  if (!vaults[currentVault].notes) vaults[currentVault].notes = [];
-  
-  vaults[currentVault].notes.push({
-    content,
-    timestamp: new Date().toISOString()
-  });
-  
-  localStorage.setItem('vaults', JSON.stringify(vaults));
-  alert('Note saved successfully!');
-}
+            // --- Notes ---
+            saveNote() {
+                if (!this.noteInput.trim()) return;
+                if (!this.vaults[this.currentVault]) return this.notify('error', 'Error', 'No active vault');
 
-function togglePreview() {
-  const preview = document.getElementById('mdPreview');
-  const input = document.getElementById('mdInput');
-  
-  if (preview.style.display === 'none') {
-    preview.style.display = 'block';
-    preview.innerHTML = '<pre style="white-space: pre-wrap; line-height: 1.6;">' + 
-                        input.value.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                        '</pre>';
-  } else {
-    preview.style.display = 'none';
-  }
-}
+                const note = {
+                    content: this.noteInput,
+                    timestamp: new Date().toISOString()
+                };
 
-// Keywords
-function addKeyword() {
-  const input = document.getElementById('kwInput');
-  const keyword = input.value.trim();
-  if (!keyword) return;
-  
-  if (!keywords.includes(keyword)) {
-    keywords.push(keyword);
-    localStorage.setItem('keywords', JSON.stringify(keywords));
-    input.value = '';
-    renderKeywords();
-    updateDashboard();
-  }
-}
+                // Push to array (ensuring array exists)
+                if (!this.vaults[this.currentVault].notes) this.vaults[this.currentVault].notes = [];
+                this.vaults[this.currentVault].notes.push(note);
+                
+                // Force reactivity
+                this.vaults = { ...this.vaults }; 
+                
+                this.noteInput = '';
+                this.logActivity('Saved intelligence note');
+                this.notify('success', 'Note Saved', 'Encrypted and stored.');
+            },
 
-function deleteKeyword(index) {
-  keywords.splice(index, 1);
-  localStorage.setItem('keywords', JSON.stringify(keywords));
-  renderKeywords();
-  updateDashboard();
-}
+            insertMD(start, end = '') {
+                this.noteInput += `${start}text${end}`;
+            },
 
-function renderKeywords() {
-  const container = document.getElementById('keywordContainer');
-  
-  if (keywords.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">No keywords yet</div></div>';
-    return;
-  }
-  
-  container.innerHTML = keywords.map((kw, i) => `
-    <div class="keyword-tag">
-      <span class="keyword-text">🔑 ${kw}</span>
-      <span class="keyword-delete" onclick="deleteKeyword(${i})">×</span>
-    </div>
-  `).join('');
-  
-  drawKeywordChart();
-}
+            renderMarkdown(text) {
+                return marked.parse(text);
+            },
 
-function drawKeywordChart() {
-  const canvas = document.getElementById('keywordChart');
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  
-  ctx.clearRect(0, 0, w, h);
-  
-  if (keywords.length === 0) return;
-  
-  const barWidth = w / keywords.length - 10;
-  const maxHeight = h - 40;
-  
-  keywords.forEach((kw, i) => {
-    const height = Math.random() * maxHeight * 0.7 + maxHeight * 0.3;
-    const x = i * (barWidth + 10) + 10;
-    const y = h - height - 20;
-    
-    const gradient = ctx.createLinearGradient(0, y, 0, h);
-    gradient.addColorStop(0, '#00d4ff');
-    gradient.addColorStop(1, '#7b2ff7');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, y, barWidth, height);
-    
-    ctx.fillStyle = '#a8b2d1';
-    ctx.font = '10px sans-serif';
-    ctx.save();
-    ctx.translate(x + barWidth / 2, h - 5);
-    ctx.rotate(-Math.PI / 4);
-    ctx.fillText(kw.substring(0, 8), 0, 0);
-    ctx.restore();
-  });
-}
+            // --- Keywords & Graph ---
+            addKeyword() {
+                if (!this.keywordInput.trim()) return;
+                if (!this.keywords.includes(this.keywordInput)) {
+                    this.keywords.push(this.keywordInput);
+                    this.logActivity(`Added target: ${this.keywordInput}`);
+                }
+                this.keywordInput = '';
+            },
 
-// Graph
-function generateGraph() {
-  const canvas = document.getElementById('graphCanvas');
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  
-  ctx.clearRect(0, 0, w, h);
-  
-  if (keywords.length === 0) {
-    ctx.fillStyle = '#6b7794';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Add keywords to generate graph', w / 2, h / 2);
-    return;
-  }
-  
-  const nodes = keywords.map((kw, i) => ({
-    x: w / 2 + Math.cos(i * 2 * Math.PI / keywords.length) * 150,
-    y: h / 2 + Math.sin(i * 2 * Math.PI / keywords.length) * 150,
-    label: kw
-  }));
-  
-  // Draw connections
-  ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      if (Math.random() > 0.6) {
-        ctx.beginPath();
-        ctx.moveTo(nodes[i].x, nodes[i].y);
-        ctx.lineTo(nodes[j].x, nodes[j].y);
-        ctx.stroke();
-      }
-    }
-  }
-  
-  // Draw nodes
-  nodes.forEach(node => {
-    const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 20);
-    gradient.addColorStop(0, '#00d4ff');
-    gradient.addColorStop(1, '#7b2ff7');
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(node.label.substring(0, 3), node.x, node.y + 4);
-    
-    ctx.fillStyle = '#a8b2d1';
-    ctx.font = '11px sans-serif';
-    ctx.fillText(node.label, node.x, node.y + 35);
-  });
-}
+            removeKeyword(index) {
+                this.keywords.splice(index, 1);
+            },
 
-// Entity Extraction
-function detectEntities() {
-  const text = document.getElementById('entityInput').value;
-  if (!text) return alert('Please enter text to analyze');
-  
-  const entities = {
-    emails: text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [],
-    urls: text.match(/https?:\/\/[^\s]+/g) || [],
-    dates: text.match(/\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b/g) || [],
-    phones: text.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g) || [],
-    ips: text.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || []
-  };
-  
-  const results = document.getElementById('entityResults');
-  let html = '<div class="entity-list">';
-  
-  Object.keys(entities).forEach(type => {
-    if (entities[type].length > 0) {
-      entities[type].forEach(entity => {
-        html += `
-          <div class="entity-item">
-            <div>
-              <div class="entity-type">${type}</div>
-              <div class="entity-value">${entity}</div>
-            </div>
-          </div>
-        `;
-      });
-    }
-  });
-  
-  html += '</div>';
-  
-  if (Object.values(entities).every(arr => arr.length === 0)) {
-    html = '<div class="empty-state"><div class="empty-icon">🧠</div><div class="empty-text">No entities detected</div></div>';
-  }
-  
-  results.innerHTML = html;
-}
+            addKeywordFromEntity(item) {
+                if (!this.keywords.includes(item)) {
+                    this.keywords.push(item);
+                    this.notify('success', 'Target Added', item);
+                }
+            },
 
-// Attachments
-function addAttachments() {
-  const files = document.getElementById('filePicker').files;
-  if (files.length === 0) return alert('Please select files');
-  
-  Array.from(files).forEach(file => {
-    attachments.push({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      added: new Date().toISOString()
-    });
-  });
-  
-  localStorage.setItem('attachments', JSON.stringify(attachments));
-  renderAttachments();
-  updateDashboard();
-  document.getElementById('filePicker').value = '';
-}
+            initGraph() {
+                const container = document.getElementById('network-graph');
+                if (!container) return;
 
-function renderAttachments() {
-  const list = document.getElementById('attachmentList');
-  
-  if (attachments.length === 0) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📎</div><div class="empty-text">No attachments yet</div></div>';
-    return;
-  }
-  
-  list.innerHTML = attachments.map((att, i) => `
-    <div class="attachment-item">
-      <div class="attachment-icon">📄</div>
-      <div class="attachment-info">
-        <div class="attachment-name">${att.name}</div>
-        <div class="attachment-meta">${(att.size / 1024).toFixed(1)} KB • ${new Date(att.added).toLocaleString()}</div>
-      </div>
-      <button class="btn btn-danger btn-small" onclick="deleteAttachment(${i})">Delete</button>
-    </div>
-  `).join('');
-}
+                const data = this.getGraphData();
+                const options = {
+                    nodes: { 
+                        shape: 'dot', 
+                        size: 20, 
+                        font: { color: '#ffffff', face: 'Inter' }, 
+                        borderWidth: 2,
+                        shadow: true 
+                    },
+                    edges: { 
+                        width: 1, 
+                        color: { color: '#334155', highlight: '#38bdf8' }, 
+                        smooth: { type: 'continuous' } 
+                    },
+                    physics: { 
+                        stabilization: false,
+                        barnesHut: { gravitationalConstant: -3000 } 
+                    },
+                    interaction: { hover: true }
+                };
+                
+                this.network = new vis.Network(container, data, options);
+            },
 
-function deleteAttachment(index) {
-  attachments.splice(index, 1);
-  localStorage.setItem('attachments', JSON.stringify(attachments));
-  renderAttachments();
-  updateDashboard();
-}
+            refreshGraph() {
+                if (this.network) {
+                    this.network.setData(this.getGraphData());
+                } else {
+                    this.initGraph();
+                }
+            },
 
-// Compare
-function compareTexts() {
-  const left = document.getElementById('leftText').value;
-  const right = document.getElementById('rightText').value;
-  
-  if (!left || !right) return alert('Please enter both texts');
-  
-  const leftWords = new Set(left.toLowerCase().split(/\s+/));
-  const rightWords = new Set(right.toLowerCase().split(/\s+/));
-  
-  const common = [...leftWords].filter(w => rightWords.has(w));
-  const onlyLeft = [...leftWords].filter(w => !rightWords.has(w));
-  const onlyRight = [...rightWords].filter(w => !leftWords.has(w));
-  
-  const similarity = (common.length / Math.max(leftWords.size, rightWords.size) * 100).toFixed(1);
-  
-  document.getElementById('compareResult').innerHTML = `
-    <div class="compare-result">
-      <h3 style="margin-bottom: 16px;">Comparison Results</h3>
-      <div style="font-size: 24px; color: var(--accent-primary); margin-bottom: 16px;">${similarity}% Similar</div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-        <div style="text-align: center;">
-          <div style="font-size: 32px; font-weight: 700;">${common.length}</div>
-          <div style="color: var(--text-muted);">Common Words</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 32px; font-weight: 700;">${onlyLeft.length}</div>
-          <div style="color: var(--text-muted);">Only in A</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 32px; font-weight: 700;">${onlyRight.length}</div>
-          <div style="color: var(--text-muted);">Only in B</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
+            getGraphData() {
+                // Creates a simulated network based on Vaults + Keywords
+                let nodes = [];
+                let edges = [];
+                let idCounter = 1;
 
-// PDF Extract
-async function extractPdf() {
-  const file = document.getElementById('pdfFile').files[0];
-  if (!file) return alert('Please select a PDF file');
-  
-  document.getElementById('pdfStatus').innerHTML = '<div class="spinner"></div>';
-  
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join(' ');
-      fullText += `\n--- Page ${i} ---\n${pageText}\n`;
-    }
-    
-    document.getElementById('pdfOutput').value = fullText;
-    document.getElementById('pdfStatus').innerHTML = '<span style="color: var(--success);">✓ Extraction complete</span>';
-  } catch (error) {
-    document.getElementById('pdfStatus').innerHTML = '<span style="color: var(--danger);">✗ Extraction failed: ' + error.message + '</span>';
-  }
-}
+                // Central Node
+                nodes.push({ id: 0, label: 'Investigation', color: '#0ea5e9', size: 30 });
 
-// Reports
-function generateReport() {
-  const type = document.getElementById('reportType').value;
-  const date = new Date().toLocaleDateString();
-  
-  let report = '';
-  
-  switch(type) {
-    case 'Incident Summary':
-      report = `INCIDENT SUMMARY REPORT
-Generated: ${date}
+                // Keywords nodes
+                this.keywords.forEach((k, i) => {
+                    const id = idCounter++;
+                    nodes.push({ id: id, label: k, color: '#6366f1' });
+                    edges.push({ from: 0, to: id });
+                });
 
-EXECUTIVE SUMMARY
-[Brief overview of the incident]
+                // Link random nodes to simulate connections
+                if (nodes.length > 2) {
+                    for(let i=0; i< nodes.length; i++) {
+                        if(Math.random() > 0.7) {
+                             edges.push({ from: i, to: Math.floor(Math.random() * nodes.length) });
+                        }
+                    }
+                }
 
-TIMELINE
-- [Event 1]
-- [Event 2]
-- [Event 3]
+                return { nodes, edges };
+            },
 
-KEY FINDINGS
-• Finding 1
-• Finding 2
-• Finding 3
+            // --- Tools (PDF & Regex) ---
+            extractEntities() {
+                const text = this.extractionText;
+                this.extractedEntities = {
+                    emails: text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [],
+                    urls: text.match(/https?:\/\/[^\s]+/g) || [],
+                    ips: text.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || [],
+                    phones: text.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g) || []
+                };
+                
+                // Dedupe
+                for (let key in this.extractedEntities) {
+                    this.extractedEntities[key] = [...new Set(this.extractedEntities[key])];
+                }
+                
+                this.notify('info', 'Analysis Complete', `Found entities.`);
+            },
 
-AFFECTED ENTITIES
-${keywords.slice(0, 5).map(k => `• ${k}`).join('\n')}
+            async handlePdfUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-RECOMMENDATIONS
-1. [Recommendation 1]
-2. [Recommendation 2]
-3. [Recommendation 3]
+                this.pdfContent = 'Extracting text... please wait...';
+                
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(buffer).promise;
+                    let fullText = '';
+                    
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        fullText += `--- Page ${i} ---\n` + textContent.items.map(item => item.str).join(' ') + '\n\n';
+                    }
+                    
+                    this.pdfContent = fullText;
+                    this.attachments.push({ name: file.name, date: new Date().toISOString() });
+                    this.notify('success', 'PDF Extracted', `${pdf.numPages} pages processed.`);
+                } catch (err) {
+                    console.error(err);
+                    this.pdfContent = 'Error extracting PDF. Ensure file is valid.';
+                    this.notify('error', 'Extraction Failed', err.message);
+                }
+            },
 
-ATTACHMENTS
-${attachments.length} file(s) referenced`;
-      break;
-      
-    case 'Entity Profile':
-      report = `ENTITY PROFILE
-Generated: ${date}
+            // --- System ---
+            notify(type, title, message) {
+                const id = Date.now();
+                let icon = 'ph-bold ph-info';
+                if (type === 'success') icon = 'ph-bold ph-check-circle text-green-400';
+                if (type === 'error') icon = 'ph-bold ph-warning-circle text-red-400';
+                
+                this.toasts.push({ id, type, title, message, icon, visible: true });
+                setTimeout(() => {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                }, 4000);
+            },
 
-BASIC INFORMATION
-Name: [Entity Name]
-Type: [Organization/Individual]
-Status: Active
-
-ASSOCIATED KEYWORDS
-${keywords.slice(0, 5).map(k => `• ${k}`).join('\n')}
-
-CONNECTIONS
-[Network analysis]
-
-ACTIVITY TIMELINE
-Recent activities and events
-
-RISK ASSESSMENT
-Risk Level: [Assessment]
-
-NOTES
-Additional intelligence notes`;
-      break;
-      
-    case 'Threat Assessment':
-      report = `THREAT ASSESSMENT
-Generated: ${date}
-
-THREAT OVERVIEW
-Nature: [Type of threat]
-Severity: [Level]
-
-INDICATORS
-${keywords.slice(0, 5).map(k => `• ${k}`).join('\n')}
-
-IMPACT ANALYSIS
-Potential consequences and affected areas
-
-MITIGATION STRATEGIES
-Recommended actions
-
-MONITORING PLAN
-Ongoing surveillance requirements`;
-      break;
-      
-    case 'Timeline Analysis':
-      report = `TIMELINE ANALYSIS
-Generated: ${date}
-
-CHRONOLOGICAL EVENTS
-[Detailed timeline of events]
-
-KEY DATES
-• [Date 1]: [Event]
-• [Date 2]: [Event]
-• [Date 3]: [Event]
-
-PATTERNS IDENTIFIED
-Analysis of temporal patterns
-
-RELATED ENTITIES
-${keywords.slice(0, 5).map(k => `• ${k}`).join('\n')}
-
-CONCLUSIONS
-Summary of timeline analysis`;
-      break;
-  }
-  
-  document.getElementById('reportOut').value = report;
-}
-
-// Import/Export
-function exportVault() {
-  const data = {
-    vaults,
-    keywords,
-    attachments,
-    exportDate: new Date().toISOString(),
-    version: '2.0'
-  };
-  
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `osint-backup-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importVault() {
-  const file = document.getElementById('importFile').files[0];
-  if (!file) return alert('Please select a file');
-  
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      
-      if (data.vaults) vaults = data.vaults;
-      if (data.keywords) keywords = data.keywords;
-      if (data.attachments) attachments = data.attachments;
-      
-      localStorage.setItem('vaults', JSON.stringify(vaults));
-      localStorage.setItem('keywords', JSON.stringify(keywords));
-      localStorage.setItem('attachments', JSON.stringify(attachments));
-      
-      renderVaults();
-      renderKeywords();
-      renderAttachments();
-      updateDashboard();
-      
-      alert('Import successful!');
-    } catch (error) {
-      alert('Import failed: Invalid file format');
-    }
-  };
-  reader.readAsText(file);
-}
-
-// Initialize
-renderVaults();
-renderKeywords();
-renderAttachments();
-
-// Timeline Functions
-function addTimelineEvent() {
-  const date = document.getElementById('timelineDate').value;
-  const event = document.getElementById('timelineEvent').value.trim();
-  const category = document.getElementById('timelineCategory').value;
-  
-  if (!date || !event) return alert('Please fill in both date and event');
-  
-  timelineEvents.push({
-    date,
-    event,
-    category,
-    id: Date.now()
-  });
-  
-  timelineEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-  localStorage.setItem('timelineEvents', JSON.stringify(timelineEvents));
-  logActivity('Added timeline event');
-  
-  document.getElementById('timelineDate').value = '';
-  document.getElementById('timelineEvent').value = '';
-  
-  renderTimeline();
-}
-
-function renderTimeline() {
-  const display = document.getElementById('timelineDisplay');
-  
-  if (timelineEvents.length === 0) {
-    display.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱️</div><div class="empty-text">No events in timeline</div></div>';
-    return;
-  }
-  
-  display.innerHTML = `
-    <div style="position: relative; padding: 20px 0;">
-      <div style="position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary));"></div>
-      ${timelineEvents.map((evt, i) => `
-        <div style="position: relative; padding: 20px 0 20px 70px; margin-bottom: 16px;">
-          <div style="position: absolute; left: 20px; width: 24px; height: 24px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 50%; border: 3px solid var(--bg-secondary);"></div>
-          <div class="card" style="margin: 0;">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-              <div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-                  ${new Date(evt.date).toLocaleString()}
-                </div>
-                <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">
-                  ${evt.category} ${evt.event}
-                </div>
-              </div>
-              <button class="btn btn-danger btn-small" onclick="deleteTimelineEvent(${i})">×</button>
-            </div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-function deleteTimelineEvent(index) {
-  timelineEvents.splice(index, 1);
-  localStorage.setItem('timelineEvents', JSON.stringify(timelineEvents));
-  renderTimeline();
-}
-
-// Search Functions
-function performSearch() {
-  const query = document.getElementById('searchInput').value.toLowerCase().trim();
-  if (!query) return;
-  
-  const results = {
-    keywords: keywords.filter(k => k.toLowerCase().includes(query)),
-    vaults: Object.keys(vaults).filter(v => v.toLowerCase().includes(query)),
-    attachments: attachments.filter(a => a.name.toLowerCase().includes(query)),
-    timeline: timelineEvents.filter(e => e.event.toLowerCase().includes(query))
-  };
-  
-  let notes = [];
-  Object.keys(vaults).forEach(vaultName => {
-    if (vaults[vaultName].notes) {
-      vaults[vaultName].notes.forEach(note => {
-        if (note.content && note.content.toLowerCase().includes(query)) {
-          notes.push({ vault: vaultName, content: note.content.substring(0, 200) });
-        }
-      });
-    }
-  });
-  
-  const totalResults = results.keywords.length + results.vaults.length + 
-                       results.attachments.length + notes.length + results.timeline.length;
-  
-  let html = `<div style="margin-bottom: 20px; font-size: 18px; color: var(--accent-primary);">
-                Found ${totalResults} result(s) for "${query}"
-              </div>`;
-  
-  if (results.keywords.length > 0) {
-    html += `<div class="card"><h4 style="margin-bottom: 12px;">🔑 Keywords (${results.keywords.length})</h4>`;
-    html += results.keywords.map(k => `<div class="keyword-tag"><span>${k}</span></div>`).join('');
-    html += '</div>';
-  }
-  
-  if (results.vaults.length > 0) {
-    html += `<div class="card"><h4 style="margin-bottom: 12px;">🗄️ Vaults (${results.vaults.length})</h4>`;
-    html += results.vaults.map(v => `<div style="padding: 8px 0;">${v}</div>`).join('');
-    html += '</div>';
-  }
-  
-  if (notes.length > 0) {
-    html += `<div class="card"><h4 style="margin-bottom: 12px;">📝 Notes (${notes.length})</h4>`;
-    html += notes.map(n => `
-      <div style="padding: 12px; margin: 8px 0; background: rgba(0, 212, 255, 0.05); border-radius: 8px;">
-        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Vault: ${n.vault}</div>
-        <div style="font-size: 14px;">${n.content}...</div>
-      </div>
-    `).join('');
-    html += '</div>';
-  }
-  
-  if (results.attachments.length > 0) {
-    html += `<div class="card"><h4 style="margin-bottom: 12px;">📎 Attachments (${results.attachments.length})</h4>`;
-    html += results.attachments.map(a => `<div style="padding: 8px 0;">${a.name}</div>`).join('');
-    html += '</div>';
-  }
-  
-  if (results.timeline.length > 0) {
-    html += `<div class="card"><h4 style="margin-bottom: 12px;">⏱️ Timeline Events (${results.timeline.length})</h4>`;
-    html += results.timeline.map(e => `<div style="padding: 8px 0;">${e.category} ${e.event}</div>`).join('');
-    html += '</div>';
-  }
-  
-  if (totalResults === 0) {
-    html = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No results found</div></div>';
-  }
-  
-  document.getElementById('searchResults').innerHTML = html;
-  logActivity(`Searched for: ${query}`);
-}
-
-// Statistics Functions
-function drawActivityHeatmap() {
-  const canvas = document.getElementById('heatmapCanvas');
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  
-  ctx.clearRect(0, 0, w, h);
-  
-  const days = 52;
-  const cellWidth = w / days - 2;
-  const cellHeight = 30;
-  
-  for (let i = 0; i < days; i++) {
-    const activity = Math.random();
-    const opacity = activity * 0.8 + 0.2;
-    
-    ctx.fillStyle = `rgba(0, 212, 255, ${opacity})`;
-    ctx.fillRect(i * (cellWidth + 2), 50, cellWidth, cellHeight);
-    
-    if (i % 7 === 0) {
-      ctx.fillStyle = '#6b7794';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`Week ${Math.floor(i / 7) + 1}`, i * (cellWidth + 2), 40);
-    }
-  }
-  
-  ctx.fillStyle = '#a8b2d1';
-  ctx.font = '12px sans-serif';
-  ctx.fillText('Activity over the last 52 weeks', 10, 20);
-  
-  // Legend
-  const legendY = h - 30;
-  ctx.fillText('Less', 20, legendY);
-  for (let i = 0; i < 5; i++) {
-    const opacity = (i + 1) / 5;
-    ctx.fillStyle = `rgba(0, 212, 255, ${opacity})`;
-    ctx.fillRect(70 + i * 25, legendY - 15, 20, 20);
-  }
-  ctx.fillStyle = '#a8b2d1';
-  ctx.fillText('More', 200, legendY);
-}
-
-function analyzeWordFrequency() {
-  const wordCount = {};
-  
-  Object.keys(vaults).forEach(vaultName => {
-    if (vaults[vaultName].notes) {
-      vaults[vaultName].notes.forEach(note => {
-        if (note.content) {
-          const words = note.content.toLowerCase().match(/\b\w+\b/g) || [];
-          words.forEach(word => {
-            if (word.length > 3) {
-              wordCount[word] = (wordCount[word] || 0) + 1;
+            logActivity(action) {
+                this.activityLog.push({ action, timestamp: new Date().toISOString() });
+            },
+            
+            performSearch() {
+                // Basic implementation
+                this.notify('info', 'Searching...', `Query: ${this.searchQuery}`);
+                // Expand logic to filter views based on search query
             }
-          });
         }
-      });
     }
-  });
-  
-  const sortedWords = Object.entries(wordCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-  
-  const canvas = document.getElementById('wordFreqChart');
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  
-  ctx.clearRect(0, 0, w, h);
-  
-  if (sortedWords.length === 0) {
-    ctx.fillStyle = '#6b7794';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('No text data to analyze', w / 2, h / 2);
-    return;
-  }
-  
-  const maxCount = sortedWords[0][1];
-  const barHeight = (h - 60) / sortedWords.length - 10;
-  
-  sortedWords.forEach(([word, count], i) => {
-    const barWidth = (count / maxCount) * (w - 200);
-    const y = i * (barHeight + 10) + 20;
-    
-    const gradient = ctx.createLinearGradient(150, y, 150 + barWidth, y);
-    gradient.addColorStop(0, '#00d4ff');
-    gradient.addColorStop(1, '#7b2ff7');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(150, y, barWidth, barHeight);
-    
-    ctx.fillStyle = '#a8b2d1';
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(word, 140, y + barHeight / 2 + 5);
-    
-    ctx.textAlign = 'left';
-    ctx.fillText(count.toString(), 160 + barWidth, y + barHeight / 2 + 5);
-  });
-  
-  logActivity('Analyzed word frequency');
-}
-
-function updateStatistics() {
-  const summary = document.getElementById('dataSummary');
-  if (!summary) return;
-  
-  let totalNotes = 0;
-  Object.keys(vaults).forEach(v => {
-    if (vaults[v].notes) totalNotes += vaults[v].notes.length;
-  });
-  
-  summary.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 12px;">
-      <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0, 212, 255, 0.05); border-radius: 8px;">
-        <span>Total Vaults</span>
-        <strong>${Object.keys(vaults).length}</strong>
-      </div>
-      <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(123, 47, 247, 0.05); border-radius: 8px;">
-        <span>Total Notes</span>
-        <strong>${totalNotes}</strong>
-      </div>
-      <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px;">
-        <span>Keywords Tracked</span>
-        <strong>${keywords.length}</strong>
-      </div>
-      <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255, 170, 0, 0.05); border-radius: 8px;">
-        <span>Attachments</span>
-        <strong>${attachments.length}</strong>
-      </div>
-      <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(255, 71, 87, 0.05); border-radius: 8px;">
-        <span>Timeline Events</span>
-        <strong>${timelineEvents.length}</strong>
-      </div>
-    </div>
-  `;
-  
-  const recentActivity = document.getElementById('recentActivity');
-  if (recentActivity) {
-    const recent = activityLog.slice(-10).reverse();
-    
-    if (recent.length === 0) {
-      recentActivity.innerHTML = '<div class="empty-state" style="padding: 20px;"><div class="empty-text">No recent activity</div></div>';
-    } else {
-      recentActivity.innerHTML = recent.map(log => `
-        <div style="padding: 10px; border-bottom: 1px solid var(--border);">
-          <div style="font-size: 14px; color: var(--text-primary);">${log.action}</div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-            ${new Date(log.timestamp).toLocaleString()}
-          </div>
-        </div>
-      `).join('');
-    }
-  }
-}
-
-function logActivity(action) {
-  activityLog.push({
-    action,
-    timestamp: new Date().toISOString()
-  });
-  
-  if (activityLog.length > 100) {
-    activityLog = activityLog.slice(-100);
-  }
-  
-  localStorage.setItem('activityLog', JSON.stringify(activityLog));
-}
-
-// Enhanced save functions with activity logging
-const originalCreateVault = createVault;
-createVault = function() {
-  originalCreateVault();
-  logActivity('Created new vault');
-};
-
-const originalAddKeyword = addKeyword;
-addKeyword = function() {
-  originalAddKeyword();
-  logActivity('Added keyword');
-};
-
-const originalSaveNote = saveNote;
-saveNote = function() {
-  originalSaveNote();
-  logActivity('Saved note');
-};
-
-// Initialize statistics on page load
-setTimeout(() => {
-  drawActivityHeatmap();
-  updateStatistics();
-  renderTimeline();
-}, 500);
 </script>
-
 </body>
 </html>
