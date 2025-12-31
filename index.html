@@ -7,7 +7,7 @@
 
 <link rel="manifest" href="manifest.json">
 
-<!-- Service worker (optional) -->
+<!-- Service worker -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
@@ -78,7 +78,7 @@ html,body{
 }
 
 .sidebar{
-  width:230px;
+  width:240px;
   background:var(--panel);
   border-right:1px solid var(--border);
   padding:14px 10px;
@@ -92,19 +92,13 @@ html,body{
   text-align:center;
 }
 
-.navgrid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
 .navbtn{
   background:var(--card);
   border:1px solid var(--border);
   padding:10px;
   border-radius:14px;
   cursor:pointer;
-  text-align:center;
+  text-align:left;
 }
 .navbtn.active{
   background:var(--accent);
@@ -135,13 +129,18 @@ button{
   cursor:pointer;
 }
 
-textarea,input{
+textarea,input,select{
   width:100%;
   background:var(--panel);
   border-radius:12px;
   padding:10px;
   border:1px solid var(--border);
   color:var(--text);
+}
+canvas{
+  background:var(--panel);
+  border-radius:12px;
+  border:1px solid var(--border);
 }
 </style>
 </head>
@@ -162,33 +161,141 @@ textarea,input{
 <div class="app" id="app">
 
 <div class="sidebar">
-  <div class="logo">OSINT Workbench</div>
 
+  <div class="logo">OSINT Workbench</div>
   <div id="userEmail" style="font-size:12px;text-align:center;color:var(--muted)"></div>
 
-  <div class="navgrid">
-    <div class="navbtn active" data-target="vaults">📂 Vaults</div>
-    <div class="navbtn" data-target="pdfextract">📕 PDF</div>
-  </div>
+  <!-- NAVIGATION -->
+  <div class="navbtn" data-target="vaults">📂 Vaults</div>
+  <div class="navbtn" data-target="notes">📝 Notes</div>
+  <div class="navbtn" data-target="keywords">🔑 Keywords</div>
+  <div class="navbtn" data-target="graph">🕸 Graph</div>
+  <div class="navbtn" data-target="matrix">🧮 Co-occurrence</div>
+  <div class="navbtn" data-target="entities">🧠 Entities</div>
+  <div class="navbtn" data-target="calendar">📅 Calendar</div>
+  <div class="navbtn" data-target="attachments">📎 Attachments</div>
+  <div class="navbtn" data-target="map">🗺 Map</div>
+  <div class="navbtn" data-target="compare">⚖ Compare</div>
+  <div class="navbtn" data-target="themes">🎨 Themes</div>
+  <div class="navbtn" data-target="report">📄 Reports</div>
+  <div class="navbtn" data-target="pdfextract">📕 PDF Extract</div>
+  <div class="navbtn" data-target="export">⬆⬇ Import / Export</div>
 
   <div class="navbtn" onclick="logout()">🚪 Logout</div>
   <div class="navbtn" onclick="toggleTheme()">🌗 Theme</div>
+
 </div>
 
 <div class="main">
 
+<!-- VAULTS -->
 <section id="vaults" class="active">
-  <h2>Vaults</h2>
-  <input id="newVaultName" placeholder="New vault name">
-  <button onclick="createVault()">Create</button>
-  <div id="vaultList"></div>
+<h2>Vaults</h2>
+<input id="newVaultName" placeholder="New vault name">
+<button onclick="createVault()">Create</button>
+<div id="vaultList"></div>
 </section>
 
+<!-- NOTES -->
+<section id="notes">
+<h2>Markdown Notes</h2>
+<textarea id="mdInput" placeholder="# Write markdown and use [[WikiLinks]]"></textarea>
+<button onclick="togglePreview()">Preview</button>
+<div id="mdPreview" style="display:none"></div>
+</section>
+
+<!-- KEYWORDS -->
+<section id="keywords">
+<h2>Keywords</h2>
+<input id="kwInput" placeholder="Add keyword">
+<button onclick="addKeyword()">Add</button>
+<div id="keywordBox"></div>
+<canvas id="keywordChart" width="400" height="220"></canvas>
+</section>
+
+<!-- GRAPH -->
+<section id="graph">
+<h2>Backlink / Keyword Graph</h2>
+<canvas id="graphCanvas" width="520" height="420"></canvas>
+</section>
+
+<!-- MATRIX -->
+<section id="matrix">
+<h2>Co-occurrence Matrix</h2>
+<div id="matrixBox"></div>
+</section>
+
+<!-- ENTITIES -->
+<section id="entities">
+<h2>Entity Detector (rule-based)</h2>
+<button onclick="detectEntities()">Run</button>
+<div id="entityBox"></div>
+</section>
+
+<!-- CALENDAR -->
+<section id="calendar">
+<h2>Calendar Heatmap</h2>
+<div id="calendarBox"></div>
+</section>
+
+<!-- ATTACHMENTS -->
+<section id="attachments">
+<h2>Attachments</h2>
+<input type="file" id="filePicker" multiple>
+<button onclick="addAttachments()">Add</button>
+<div id="attachmentList"></div>
+</section>
+
+<!-- MAP -->
+<section id="map">
+<h2>Geo Map (basic canvas)</h2>
+<canvas id="mapCanvas" width="500" height="300"></canvas>
+</section>
+
+<!-- COMPARE -->
+<section id="compare">
+<h2>Side-by-Side Compare</h2>
+<textarea id="leftText" placeholder="A…"></textarea>
+<textarea id="rightText" placeholder="B…"></textarea>
+<button onclick="compareTexts()">Compare</button>
+<div id="compareResult"></div>
+</section>
+
+<!-- THEMES -->
+<section id="themes">
+<h2>Theme Builder</h2>
+<label>Background</label><input type="color" id="bgCol">
+<label>Text</label><input type="color" id="fgCol">
+<label>Accent</label><input type="color" id="acCol">
+<button onclick="applyTheme()">Apply</button>
+</section>
+
+<!-- REPORTS -->
+<section id="report">
+<h2>Report Generator</h2>
+<select id="reportType">
+<option>Incident Summary</option>
+<option>Entity Profile</option>
+<option>Country Brief</option>
+</select>
+<button onclick="generateReport()">Generate</button>
+<textarea id="reportOut" style="height:40vh"></textarea>
+</section>
+
+<!-- PDF -->
 <section id="pdfextract">
-  <h2>Offline PDF Extractor</h2>
-  <input type="file" id="pdfFile" accept="application/pdf">
-  <button onclick="extractPdf()">Extract</button>
-  <textarea id="pdfOutput" style="height:40vh"></textarea>
+<h2>Offline PDF Extractor</h2>
+<input type="file" id="pdfFile" accept="application/pdf">
+<button onclick="extractPdf()">Extract</button>
+<textarea id="pdfOutput" style="height:40vh"></textarea>
+</section>
+
+<!-- IMPORT / EXPORT -->
+<section id="export">
+<h2>Import / Export Vault</h2>
+<button onclick="exportVault()">Export</button><br><br>
+<input type="file" id="importFile">
+<button onclick="importVault()">Import</button>
 </section>
 
 </div>
@@ -196,8 +303,6 @@ textarea,input{
 
 <script>
 /* ---------------- FIREBASE CONFIG ---------------- */
-/* REPLACE WITH YOUR OWN VALUES */
-
 const firebaseConfig = {
   apiKey: "AIzaSyD6F2TCqGB0HThGj0usvLHl30ZOphFRVkM",
   authDomain: "osint-workbench-dbe48.firebaseapp.com",
@@ -209,27 +314,18 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 
-/* ---------------- LOGIN LOGIC ---------------- */
-
+/* ---------------- LOGIN ---------------- */
 function googleLogin(){
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider)
-  .then(result=>{
-    document.getElementById("loginStatus").innerText="Logged in";
-  })
-  .catch(e=>{
-    document.getElementById("loginStatus").innerText=e.message;
-  });
 }
 
 function logout(){
   auth.signOut();
 }
 
-/* auth state observer */
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById("loginScreen").style.display="none";
@@ -242,9 +338,7 @@ auth.onAuthStateChanged(user=>{
 });
 
 /* ---------------- THEME ---------------- */
-function toggleTheme(){
-  document.body.classList.toggle("light");
-}
+function toggleTheme(){document.body.classList.toggle("light");}
 
 /* ---------------- NAVIGATION ---------------- */
 document.querySelectorAll(".navbtn").forEach(b=>{
@@ -252,15 +346,13 @@ document.querySelectorAll(".navbtn").forEach(b=>{
     b.onclick=()=>{
       document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));
       document.querySelectorAll("section").forEach(x=>x.classList.remove("active"));
-
       b.classList.add("active");
       document.getElementById(b.dataset.target).classList.add("active");
     };
   }
 });
 
-/* ---------------- LOCAL VAULT STORAGE ---------------- */
-
+/* ---------------- VAULT STORAGE ---------------- */
 let vaults = JSON.parse(localStorage.getItem("vaults") || "{}");
 let currentVault = "default";
 
@@ -268,7 +360,6 @@ function saveVaults(){
   localStorage.setItem("vaults", JSON.stringify(vaults));
   renderVaults();
 }
-
 function createVault(){
   const n=document.getElementById("newVaultName").value.trim();
   if(!n) return;
@@ -276,7 +367,6 @@ function createVault(){
   currentVault=n;
   saveVaults();
 }
-
 function renderVaults(){
   const box=document.getElementById("vaultList");
   box.innerHTML="";
@@ -289,21 +379,56 @@ function renderVaults(){
 }
 renderVaults();
 
-/* ---------------- PDF EXTRACTION ---------------- */
+/* ---------------- KEYWORDS ---------------- */
+let keywords=[];
+function addKeyword(){
+  const k=document.getElementById("kwInput").value.trim();
+  if(!k) return;
+  keywords.push(k);
+  renderKeywords();
+}
+function renderKeywords(){
+  const box=document.getElementById("keywordBox");
+  box.innerHTML=keywords.map(k=>`<span>${k}</span>`).join(" ");
+}
+
+/* ---------------- NOTES + PREVIEW ---------------- */
+function togglePreview(){
+  const src=document.getElementById("mdInput").value;
+  document.getElementById("mdPreview").style.display="block";
+  document.getElementById("mdPreview").innerText=src;
+}
+
+/* ---------------- EXPORT / IMPORT ---------------- */
+function exportVault(){
+  const blob=new Blob([JSON.stringify(vaults)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="vault.json";
+  a.click();
+}
+function importVault(){
+  const f=document.getElementById("importFile").files[0];
+  const r=new FileReader();
+  r.onload=e=>{
+    vaults=JSON.parse(e.target.result);
+    saveVaults();
+  };
+  r.readAsText(f);
+}
+
+/* ---------------- PDF ---------------- */
 async function extractPdf(){
   const file=document.getElementById("pdfFile").files[0];
   if(!file) return;
-
   const array=await file.arrayBuffer();
   const pdf=await pdfjsLib.getDocument({data:array}).promise;
-
   let out="";
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
     const text=await page.getTextContent();
     out+=text.items.map(t=>t.str).join(" ")+"\n\n";
   }
-
   document.getElementById("pdfOutput").value=out;
 }
 </script>
