@@ -292,11 +292,15 @@ canvas{
 
 <!-- IMPORT / EXPORT -->
 <section id="export">
-<h2>Import / Export Vault</h2>
-<button onclick="exportVault()">Export</button><br><br>
-<input type="file" id="importFile">
-<button onclick="importVault()">Import</button>
+  <h2>Import / Export Vault</h2>
+
+  <button onclick="exportVault()">⬇ Export vault</button>
+  <br><br>
+
+  <input type="file" id="importFile" accept="application/json">
+  <button onclick="importVault()">⬆ Import vault</button>
 </section>
+
 
 </div>
 </div>
@@ -379,18 +383,60 @@ function renderVaults(){
 }
 renderVaults();
 
-/* ---------------- KEYWORDS ---------------- */
-let keywords=[];
+/* ---------------- KEYWORDS (ADD + DELETE + RENDER) ---------------- */
+
+let keywords = JSON.parse(localStorage.getItem("keywords") || "[]");
+
+function saveKeywords(){
+  localStorage.setItem("keywords", JSON.stringify(keywords));
+}
+
 function addKeyword(){
-  const k=document.getElementById("kwInput").value.trim();
+  const input = document.getElementById("kwInput");
+  const k = input.value.trim();
   if(!k) return;
+
   keywords.push(k);
+  input.value = "";
+  saveKeywords();
   renderKeywords();
 }
-function renderKeywords(){
-  const box=document.getElementById("keywordBox");
-  box.innerHTML=keywords.map(k=>`<span>${k}</span>`).join(" ");
+
+function deleteKeyword(idx){
+  keywords.splice(idx,1);
+  saveKeywords();
+  renderKeywords();
 }
+
+function renderKeywords(){
+  const box = document.getElementById("keywordBox");
+
+  if(!keywords.length){
+    box.innerHTML = `<p style="color:var(--muted)">No keywords yet</p>`;
+    return;
+  }
+
+  box.innerHTML = keywords
+    .map((k,i)=>`
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin:4px;
+        background:var(--panel);
+        border:1px solid var(--border);
+        padding:6px 10px;
+        border-radius:12px;
+      ">
+        <span>🔑 ${k}</span>
+        <button onclick="deleteKeyword(${i})">❌</button>
+      </div>
+    `)
+    .join("");
+}
+
+renderKeywords();
+
 
 /* ---------------- NOTES + PREVIEW ---------------- */
 function togglePreview(){
@@ -399,14 +445,48 @@ function togglePreview(){
   document.getElementById("mdPreview").innerText=src;
 }
 
-/* ---------------- EXPORT / IMPORT ---------------- */
+/* ---------------- EXPORT / IMPORT (WORKING) ---------------- */
+
 function exportVault(){
-  const blob=new Blob([JSON.stringify(vaults)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="vault.json";
-  a.click();
+  try{
+    const data = JSON.stringify(vaults, null, 2);
+    const blob = new Blob([data], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "vault_backup.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  } catch(e){
+    alert("Export failed: " + e.message);
+  }
 }
+
+function importVault(){
+  const input = document.getElementById("importFile");
+  if(!input.files.length){
+    alert("Select a JSON file first");
+    return;
+  }
+
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = e=>{
+    try{
+      vaults = JSON.parse(e.target.result);
+      saveVaults();
+      alert("Import successful");
+    }catch(err){
+      alert("Import failed — invalid JSON file");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
 function importVault(){
   const f=document.getElementById("importFile").files[0];
   const r=new FileReader();
