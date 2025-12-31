@@ -1,4 +1,4 @@
-const CACHE_NAME = 'osint-workbench-v1';
+const CACHE_NAME = 'osint-workbench-v2';
 
 const ASSETS = [
   './',
