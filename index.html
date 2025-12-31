@@ -3,19 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AETHER | OSINT Intelligence Workbench</title>
+    <title>VANTAGE // OSINT Workbench</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' },
-                        primary: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-                        accent: { 400: '#818cf8', 500: '#6366f1' }
-                    },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
@@ -25,604 +34,261 @@
         }
     </script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Glassmorphism Utilities */
-        .glass {
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(56, 189, 248, 0.1);
+        :root {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border: #334155;
         }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* Graph Container */
-        #network-graph { height: 500px; width: 100%; outline: none; }
+        /* Themes */
+        .theme-cyber { --bg-main: #020617; --bg-panel: #0f172a; --accent: #0ea5e9; --border: #1e293b; }
+        .theme-light { --bg-main: #f1f5f9; --bg-panel: #ffffff; --text-main: #0f172a; --text-muted: #64748b; --accent: #2563eb; --border: #e2e8f0; }
+        .theme-terminal { --bg-main: #000000; --bg-panel: #0c0c0c; --text-main: #22c55e; --text-muted: #15803d; --accent: #22c55e; --border: #14532d; font-family: 'JetBrains Mono', monospace; }
+
+        body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; transition: 0.3s; }
+        .panel { background-color: var(--bg-panel); border: 1px solid var(--border); }
+        .btn-accent { background-color: var(--accent); color: white; }
         
+        #map { height: 100%; width: 100%; z-index: 1; background: #0f172a; }
+        
+        /* Utility */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         [x-cloak] { display: none !important; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 antialiased overflow-hidden selection:bg-primary-500 selection:text-white" x-data="app()">
+<body class="h-screen w-screen overflow-hidden flex text-sm" x-data="app()">
 
-    <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="glass flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl transform transition-all duration-300 pointer-events-auto border-l-4"
-                 :class="{'border-green-500': toast.type === 'success', 'border-red-500': toast.type === 'error', 'border-blue-500': toast.type === 'info'}"
-                 x-show="toast.visible"
-                 x-transition:enter="translate-x-full opacity-0"
-                 x-transition:enter-end="translate-x-0 opacity-100"
-                 x-transition:leave="translate-x-full opacity-0">
-                <i :class="toast.icon" class="text-lg"></i>
-                <div>
-                    <h4 class="font-semibold text-sm" x-text="toast.title"></h4>
-                    <p class="text-xs text-slate-400" x-text="toast.message"></p>
-                </div>
-            </div>
-        </template>
-    </div>
-
-    <div x-show="!isAuthenticated" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
-        <div class="relative glass p-8 rounded-2xl w-full max-w-md text-center shadow-2xl border border-primary-500/20">
-            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                <i class="ph ph-detective text-3xl"></i>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-2">AETHER</h1>
-            <p class="text-slate-400 mb-8">Advanced Open Source Intelligence Workbench</p>
-            
-            <div class="space-y-3">
-                <button @click="login('google')" class="w-full py-3 px-4 bg-white text-slate-900 rounded-lg font-semibold hover:bg-slate-100 transition flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-google-logo"></i> Sign in with Google
-                </button>
-                <button @click="login('offline')" class="w-full py-3 px-4 glass-card text-slate-300 rounded-lg font-medium hover:bg-white/5 transition border border-dashed border-slate-600 flex items-center justify-center gap-2">
-                    <i class="ph ph-wifi-slash"></i> Use Offline Mode
-                </button>
-            </div>
-            <p class="mt-6 text-xs text-slate-500">Data stored locally in browser sandbox.</p>
+    <aside class="w-16 md:w-64 flex-shrink-0 flex flex-col border-r panel z-20">
+        <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b" style="border-color: var(--border)">
+            <i class="ph-fill ph-radar text-2xl text-accent"></i>
+            <span class="hidden md:block ml-3 font-bold text-lg tracking-wider">VANTAGE</span>
         </div>
-    </div>
 
-    <div x-show="isAuthenticated" x-cloak class="flex h-screen bg-slate-950">
+        <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+            <template x-for="item in navItems" :key="item.id">
+                <button @click="activeTab = item.id" 
+                        class="w-full flex items-center px-2 md:px-3 py-3 rounded-lg transition-all relative"
+                        :class="activeTab === item.id ? 'bg-white/10 text-accent' : 'text-muted hover:bg-white/5'">
+                    <i :class="item.icon" class="text-xl"></i>
+                    <span class="hidden md:block ml-3 font-medium" x-text="item.label"></span>
+                    <div x-show="activeTab === item.id" class="absolute left-0 top-2 bottom-2 w-1 rounded-r-full btn-accent"></div>
+                </button>
+            </template>
+        </nav>
+
+        <div class="p-4 border-t" style="border-color: var(--border)">
+            <div x-show="user" class="flex items-center gap-3 w-full p-2 rounded bg-white/5">
+                <img :src="user?.photoURL" class="w-8 h-8 rounded-full border border-accent">
+                <div class="hidden md:block text-left overflow-hidden">
+                    <div class="font-bold truncate" x-text="user?.displayName"></div>
+                    <div class="text-xs text-green-400">● Secure Uplink</div>
+                </div>
+            </div>
+            <div x-show="!user" class="text-center">
+                <button @click="googleLogin" class="w-full btn-accent py-2 rounded font-bold flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-google-logo"></i> <span class="hidden md:inline">Login</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 relative">
         
-        <aside class="w-64 glass flex-shrink-0 flex flex-col border-r border-slate-800 z-20 transition-all duration-300" :class="{'w-20': sidebarCollapsed}">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800/50">
-                <i class="ph-fill ph-fingerprint text-primary-400 text-2xl"></i>
-                <span x-show="!sidebarCollapsed" class="ml-3 font-bold text-lg tracking-wide text-white">AETHER</span>
-            </div>
-
-            <div class="p-4 border-b border-slate-800/50" x-show="!sidebarCollapsed">
-                <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-800">
-                    <div class="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Current Vault</div>
-                    <div class="font-medium text-primary-400 truncate" x-text="currentVault || 'Select a Vault'"></div>
-                </div>
-            </div>
-
-            <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-3">
-                <template x-for="item in navItems" :key="item.id">
-                    <button @click="activeTab = item.id" 
-                            class="w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative"
-                            :class="activeTab === item.id ? 'bg-primary-500/10 text-primary-400' : 'text-slate-400 hover:text-white hover:bg-white/5'">
-                        <i :class="item.icon" class="text-xl"></i>
-                        <span x-show="!sidebarCollapsed" class="ml-3 font-medium text-sm" x-text="item.label"></span>
-                        <div x-show="activeTab === item.id" class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-r-full"></div>
-                    </button>
-                </template>
-            </nav>
-
-            <div class="p-3 border-t border-slate-800/50 flex justify-between">
-                <button @click="sidebarCollapsed = !sidebarCollapsed" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5">
-                    <i class="ph ph-arrows-left-right"></i>
-                </button>
-                <button @click="logout" class="p-2 text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10">
-                    <i class="ph ph-sign-out"></i>
-                </button>
-            </div>
-        </aside>
-
-        <main class="flex-1 flex flex-col min-w-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
+        <header class="h-16 panel border-b flex items-center justify-between px-6 z-10">
+            <h2 class="text-lg font-semibold flex items-center gap-2">
+                <i :class="navItems.find(i => i.id === activeTab).icon" class="text-accent"></i>
+                <span x-text="navItems.find(i => i.id === activeTab).label"></span>
+            </h2>
             
-            <header class="h-16 border-b border-slate-800/50 flex items-center justify-between px-6 glass sticky top-0 z-10">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-xl font-semibold text-white" x-text="navItems.find(i => i.id === activeTab)?.label"></h2>
-                    <span class="text-slate-600">/</span>
-                    <span class="text-sm text-slate-400" x-text="currentVault"></span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="relative">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="text" placeholder="Global Search..." x-model="searchQuery" @keydown.enter="performSearch"
-                               class="bg-slate-900 border border-slate-700 text-sm rounded-full pl-10 pr-4 py-1.5 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 w-64 transition-all">
-                    </div>
-                </div>
-            </header>
-
-            <div class="flex-1 overflow-y-auto p-6 scroll-smooth">
+            <div class="flex items-center gap-4">
+                <select x-model="currentTheme" @change="applyTheme()" class="panel px-3 py-1 rounded text-xs focus:outline-none cursor-pointer">
+                    <option value="theme-cyber">Cyberpunk</option>
+                    <option value="theme-light">Corporate</option>
+                    <option value="theme-terminal">Terminal</option>
+                </select>
                 
-                <div x-show="activeTab === 'dashboard'" class="space-y-6 animate-fade-in">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="glass-card p-5 rounded-xl border-l-4 border-blue-500">
-                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Active Vaults</div>
-                            <div class="text-3xl font-bold text-white mt-1" x-text="Object.keys(vaults).length"></div>
-                        </div>
-                        <div class="glass-card p-5 rounded-xl border-l-4 border-purple-500">
-                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Tracked Keywords</div>
-                            <div class="text-3xl font-bold text-white mt-1" x-text="keywords.length"></div>
-                        </div>
-                        <div class="glass-card p-5 rounded-xl border-l-4 border-green-500">
-                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Intelligence Notes</div>
-                            <div class="text-3xl font-bold text-white mt-1" x-text="totalNotes"></div>
-                        </div>
-                        <div class="glass-card p-5 rounded-xl border-l-4 border-orange-500">
-                            <div class="text-slate-400 text-xs uppercase font-bold tracking-wider">Files Captured</div>
-                            <div class="text-3xl font-bold text-white mt-1" x-text="attachments.length"></div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="glass-card p-6 rounded-xl">
-                            <h3 class="font-semibold mb-4 flex items-center gap-2"><i class="ph ph-clock text-primary-400"></i> Recent Activity</h3>
-                            <ul class="space-y-3">
-                                <template x-for="log in activityLog.slice().reverse().slice(0, 5)" :key="log.timestamp">
-                                    <li class="flex items-start gap-3 text-sm border-b border-white/5 pb-2">
-                                        <span class="w-2 h-2 rounded-full bg-primary-500 mt-1.5"></span>
-                                        <div class="flex-1">
-                                            <div class="text-slate-200" x-text="log.action"></div>
-                                            <div class="text-slate-500 text-xs" x-text="new Date(log.timestamp).toLocaleString()"></div>
-                                        </div>
-                                    </li>
-                                </template>
-                            </ul>
-                        </div>
-                        <div class="glass-card p-6 rounded-xl flex items-center justify-center text-center">
-                            <div>
-                                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <i class="ph ph-rocket-launch text-2xl text-primary-400"></i>
-                                </div>
-                                <h3 class="text-lg font-bold text-white">Ready for Investigation</h3>
-                                <p class="text-slate-400 text-sm mt-2 max-w-xs mx-auto">Select a tool from the sidebar to begin processing data.</p>
-                                <button @click="activeTab = 'vaults'" class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition">
-                                    Manage Vaults
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2 text-xs" :class="dbConnected ? 'text-green-500' : 'text-orange-500'">
+                    <i :class="dbConnected ? 'ph-fill ph-cloud-check' : 'ph-fill ph-cloud-slash'"></i>
+                    <span class="hidden md:inline" x-text="dbConnected ? 'Cloud Sync Active' : 'Local Storage Only'"></span>
                 </div>
-
-                <div x-show="activeTab === 'vaults'" class="space-y-6">
-                    <div class="glass-card p-6 rounded-xl">
-                        <div class="flex gap-4 items-end mb-6">
-                            <div class="flex-1">
-                                <label class="block text-xs font-medium text-slate-400 mb-1">New Operation Name</label>
-                                <input type="text" x-model="newVaultName" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:ring-1 focus:ring-primary-500 focus:outline-none" placeholder="e.g. Operation Bluebird">
-                            </div>
-                            <button @click="createVault" class="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-medium transition">Create Vault</button>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <template x-for="(data, name) in vaults" :key="name">
-                                <div @click="switchVault(name)" class="relative group p-5 rounded-xl border transition-all cursor-pointer hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/10 bg-slate-900/40"
-                                     :class="currentVault === name ? 'border-primary-500 ring-1 ring-primary-500/20' : 'border-slate-800'">
-                                    <div class="flex justify-between items-start">
-                                        <i class="ph-fill ph-folder text-3xl" :class="currentVault === name ? 'text-primary-400' : 'text-slate-600 group-hover:text-primary-400'"></i>
-                                        <button @click.stop="deleteVault(name)" class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition"><i class="ph-bold ph-trash"></i></button>
-                                    </div>
-                                    <h4 class="mt-3 font-semibold text-white truncate" x-text="name"></h4>
-                                    <div class="mt-2 text-xs text-slate-500 flex justify-between">
-                                        <span x-text="(data.notes || []).length + ' notes'"></span>
-                                        <span x-text="new Date(data.created).toLocaleDateString()"></span>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="activeTab === 'notes'" class="h-full flex flex-col gap-4">
-                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 h-full min-h-[500px]">
-                        <div class="glass-card flex flex-col rounded-xl overflow-hidden">
-                            <div class="p-3 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Editor</span>
-                                <div class="flex gap-2">
-                                    <button @click="insertMD('**', '**')" class="p-1 text-slate-400 hover:text-white" title="Bold"><i class="ph-bold ph-text-b"></i></button>
-                                    <button @click="insertMD('*', '*')" class="p-1 text-slate-400 hover:text-white" title="Italic"><i class="ph-bold ph-text-italic"></i></button>
-                                    <button @click="insertMD('# ')" class="p-1 text-slate-400 hover:text-white" title="Heading"><i class="ph-bold ph-text-h-one"></i></button>
-                                    <button @click="insertMD('- [ ] ')" class="p-1 text-slate-400 hover:text-white" title="Task"><i class="ph-bold ph-check-square"></i></button>
-                                </div>
-                            </div>
-                            <textarea x-model="noteInput" class="flex-1 bg-transparent p-4 resize-none focus:outline-none font-mono text-sm leading-relaxed" placeholder="# Intel Log&#10;&#10;Start typing your findings..."></textarea>
-                            <div class="p-3 border-t border-slate-800 bg-slate-900/30 text-right">
-                                <button @click="saveNote" class="bg-primary-600 hover:bg-primary-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition">Save Log</button>
-                            </div>
-                        </div>
-
-                        <div class="glass-card flex flex-col rounded-xl overflow-hidden">
-                             <div class="p-3 bg-slate-900/50 border-b border-slate-800">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Preview</span>
-                            </div>
-                            <div class="flex-1 p-6 overflow-y-auto prose prose-invert prose-sm max-w-none" x-html="renderMarkdown(noteInput)"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-card rounded-xl p-4">
-                        <h3 class="font-semibold mb-4 text-sm uppercase text-slate-500">History in <span x-text="currentVault" class="text-primary-400"></span></h3>
-                        <div class="space-y-2 max-h-60 overflow-y-auto">
-                            <template x-for="(note, idx) in (vaults[currentVault]?.notes || []).slice().reverse()" :key="idx">
-                                <div class="p-3 rounded bg-slate-800/50 border border-slate-700/50 hover:border-slate-600 transition">
-                                    <div class="text-xs text-slate-500 mb-1" x-text="new Date(note.timestamp).toLocaleString()"></div>
-                                    <div class="text-sm text-slate-300 truncate font-mono" x-text="note.content.substring(0, 100) + '...'"></div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="activeTab === 'graph'" class="h-full flex flex-col">
-                    <div class="glass-card p-4 rounded-xl flex-1 flex flex-col relative overflow-hidden">
-                        <div class="absolute top-4 left-4 z-10 glass p-2 rounded-lg flex gap-2">
-                            <input type="text" x-model="keywordInput" @keydown.enter="addKeyword" placeholder="Add entity..." class="bg-slate-900 border border-slate-700 rounded px-3 py-1 text-sm focus:border-primary-500 focus:outline-none w-40">
-                            <button @click="addKeyword" class="bg-primary-600 hover:bg-primary-500 text-white px-3 py-1 rounded text-sm"><i class="ph-bold ph-plus"></i></button>
-                            <button @click="refreshGraph" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm"><i class="ph-bold ph-arrows-clockwise"></i></button>
-                        </div>
-                        <div id="network-graph" class="flex-1 bg-slate-900/50 rounded-lg border border-slate-800"></div>
-                        <div class="mt-4 flex flex-wrap gap-2 max-h-24 overflow-y-auto">
-                            <template x-for="(k, i) in keywords" :key="i">
-                                <span class="px-2 py-1 bg-primary-500/10 border border-primary-500/30 text-primary-400 text-xs rounded-full flex items-center gap-1 group">
-                                    <span x-text="k"></span>
-                                    <button @click="removeKeyword(i)" class="hover:text-red-400"><i class="ph-bold ph-x"></i></button>
-                                </span>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="activeTab === 'tools'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    
-                    <div class="glass-card p-6 rounded-xl flex flex-col h-[600px]">
-                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph ph-brain text-accent-400"></i> Entity Extraction</h3>
-                        <textarea x-model="extractionText" class="w-full h-40 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm font-mono focus:border-accent-500 focus:outline-none mb-4" placeholder="Paste intelligence text here..."></textarea>
-                        <button @click="extractEntities" class="w-full py-2 bg-accent-600 hover:bg-accent-500 text-white rounded-lg mb-4 font-medium">Analyze Text</button>
-                        
-                        <div class="flex-1 overflow-y-auto space-y-3 bg-slate-900/30 rounded-lg p-3 border border-slate-800">
-                             <template x-for="(items, type) in extractedEntities" :key="type">
-                                <div x-show="items.length > 0">
-                                    <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2" x-text="type"></div>
-                                    <div class="flex flex-wrap gap-2">
-                                        <template x-for="item in items" :key="item">
-                                            <span class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-accent-300 font-mono select-all cursor-pointer hover:border-accent-500 transition" x-text="item" @click="addKeywordFromEntity(item)"></span>
-                                        </template>
-                                    </div>
-                                </div>
-                             </template>
-                             <div x-show="!hasEntities" class="text-center text-slate-500 mt-10 italic">No entities extracted yet.</div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-xl flex flex-col h-[600px]">
-                        <h3 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph ph-file-pdf text-red-400"></i> PDF Text Scraper</h3>
-                        <div class="relative border-2 border-dashed border-slate-700 rounded-lg p-6 hover:bg-slate-800/50 transition text-center cursor-pointer mb-4">
-                            <input type="file" @change="handlePdfUpload" accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                            <i class="ph ph-upload-simple text-3xl text-slate-500 mb-2"></i>
-                            <p class="text-sm text-slate-400">Drop PDF or Click to Upload</p>
-                        </div>
-                        <div class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-y-auto font-mono text-xs leading-relaxed text-slate-300 whitespace-pre-wrap select-text" x-text="pdfContent || '// Extracted text will appear here...'"></div>
-                    </div>
-                </div>
-
             </div>
-        </main>
-    </div>
+        </header>
+
+        <div class="flex-1 overflow-hidden relative bg-opacity-50">
+            
+            <div x-show="activeTab === 'dashboard'" class="p-6 h-full overflow-y-auto space-y-6 animate-fade-in">
+                <div x-show="!user" class="p-4 rounded border border-orange-500/30 bg-orange-500/10 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-orange-400">⚠️ Offline Mode</h3>
+                        <p class="text-xs opacity-70">Login to enable Cloud Sync (Google Drive/Firestore) and cross-device access.</p>
+                    </div>
+                    <button @click="googleLogin" class="px-4 py-2 bg-orange-600 text-white rounded text-xs font-bold hover:bg-orange-500">Connect</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="panel p-6 rounded-xl border-l-4 border-accent">
+                        <div class="text-xs uppercase font-bold opacity-60">Intelligence Vault</div>
+                        <div class="text-4xl font-bold mt-2" x-text="savedNotes.length">0</div>
+                        <div class="text-xs opacity-60 mt-1">Saved Investigations</div>
+                    </div>
+                    
+                    <div class="md:col-span-2 panel p-6 rounded-xl flex flex-col justify-center">
+                        <h3 class="font-bold mb-3 flex items-center gap-2"><i class="ph-bold ph-lightning"></i> Quick Tools</h3>
+                        <div class="flex gap-2">
+                            <input type="text" x-model="quickSearch" @keydown.enter="openToolLink" placeholder="Enter Username, Email, or Domain..." class="flex-1 bg-transparent border rounded px-4 py-3 focus:border-accent focus:outline-none" style="border-color: var(--border)">
+                            <button @click="openToolLink" class="btn-accent px-6 rounded font-bold">Scan</button>
+                        </div>
+                        <div class="flex gap-2 mt-3 text-xs opacity-60">
+                            <span>Direct Search:</span>
+                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='startpage'; openToolLink()">Startpage</span> • 
+                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='whois'; openToolLink()">Whois</span> • 
+                            <span class="hover:text-accent cursor-pointer" @click="quickSearch='whatsmyname'; openToolLink()">WhatsMyName</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-lg mt-4 border-b pb-2" style="border-color: var(--border)">Recent Case Files</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <template x-for="note in savedNotes.slice(0, 6)" :key="note.id">
+                        <div @click="loadNote(note)" class="panel p-4 rounded-lg cursor-pointer hover:border-accent transition group relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-accent opacity-0 group-hover:opacity-100 transition"></div>
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold truncate" x-text="note.title || 'Untitled Case'"></h4>
+                                <span class="text-xs opacity-50" x-text="new Date(note.updatedAt).toLocaleDateString()"></span>
+                            </div>
+                            <p class="text-xs mt-2 opacity-60 line-clamp-2 font-mono" x-text="note.content ? note.content.substring(0, 120) : 'No content...'"></p>
+                        </div>
+                    </template>
+                    <div x-show="savedNotes.length === 0" class="col-span-2 text-center py-10 opacity-40">
+                        <i class="ph-duotone ph-folder-open text-4xl mb-2"></i>
+                        <p>Vault is empty. Start a new investigation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'notes'" class="h-full flex flex-col md:flex-row">
+                <div class="w-full md:w-64 panel border-r flex flex-col">
+                    <div class="p-3 border-b" style="border-color: var(--border)">
+                        <button @click="createNewNote" class="w-full py-2 btn-accent rounded flex items-center justify-center gap-2 font-bold shadow-lg">
+                            <i class="ph-bold ph-plus"></i> New Case
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto">
+                        <template x-for="note in savedNotes" :key="note.id">
+                            <div @click="loadNote(note)" class="p-3 border-b cursor-pointer hover:bg-white/5 transition" 
+                                 :class="currentNote.id === note.id ? 'bg-white/10 border-l-4 border-l-accent' : 'opacity-70'" style="border-color: var(--border)">
+                                <div class="font-bold text-sm truncate" x-text="note.title || 'Untitled Case'"></div>
+                                <div class="text-xs opacity-50" x-text="new Date(note.updatedAt).toLocaleTimeString()"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col h-full bg-opacity-50">
+                    <div class="p-4 border-b flex gap-4 items-center" style="border-color: var(--border)">
+                        <input type="text" x-model="currentNote.title" placeholder="Case Title..." class="flex-1 bg-transparent text-lg font-bold focus:outline-none">
+                        <div class="flex gap-2">
+                            <button @click="downloadNote" class="p-2 hover:text-accent" title="Download Markdown"><i class="ph-bold ph-download-simple text-lg"></i></button>
+                            <button @click="saveCurrentNote" class="p-2 text-accent" title="Save"><i class="ph-fill ph-floppy-disk text-lg"></i></button>
+                            <button @click="deleteNote" class="p-2 hover:text-red-500" title="Delete"><i class="ph-bold ph-trash text-lg"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 h-full overflow-hidden">
+                        <textarea x-model="currentNote.content" class="p-6 bg-transparent resize-none focus:outline-none font-mono text-sm leading-relaxed border-r h-full" 
+                                  placeholder="# Case Notes&#10;&#10;Use Markdown. Paste images/links here..." style="border-color: var(--border)"></textarea>
+                        <div class="hidden md:block p-6 prose prose-invert prose-sm overflow-y-auto h-full" x-html="renderMarkdown(currentNote.content)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'geo'" class="h-full flex flex-col relative">
+                <div class="absolute top-4 left-4 md:left-14 z-[999] flex gap-2 w-full max-w-sm">
+                    <input type="text" x-model="ipInput" @keydown.enter="lookupIp" placeholder="IP Address (e.g. 8.8.8.8)" class="panel w-full px-4 py-2 rounded shadow-xl focus:outline-none border border-accent text-xs md:text-sm">
+                    <button @click="lookupIp" class="btn-accent px-4 py-2 rounded shadow-xl"><i class="ph-bold ph-crosshair"></i></button>
+                </div>
+                <div id="map"></div>
+                
+                <div x-show="ipData" class="absolute bottom-6 left-6 z-[999] panel p-4 rounded-lg shadow-2xl border border-accent w-64 text-sm space-y-2 animate-fade-in">
+                    <div class="font-bold text-accent border-b pb-1 mb-2 flex justify-between">
+                        <span>Target Intel</span>
+                        <button @click="ipData=null"><i class="ph-bold ph-x"></i></button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1 text-xs">
+                        <div class="opacity-50">IP:</div><div class="col-span-2 font-mono" x-text="ipData?.ip"></div>
+                        <div class="opacity-50">Loc:</div><div class="col-span-2" x-text="ipData?.city + ', ' + ipData?.country_name"></div>
+                        <div class="opacity-50">ISP:</div><div class="col-span-2" x-text="ipData?.org"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'media'" class="p-6 h-full overflow-y-auto">
+                <div class="max-w-5xl mx-auto space-y-6">
+                    <div class="panel border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:bg-white/5 transition relative" style="border-color: var(--border)">
+                        <input type="file" @change="handleImageUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*">
+                        <i class="ph-duotone ph-aperture text-5xl mb-4 text-accent"></i>
+                        <h3 class="text-2xl font-bold">Image Intelligence</h3>
+                        <p class="text-muted mt-2">Drop image to extract EXIF, GPS, and Device fingerprints.</p>
+                    </div>
+
+                    <div x-show="exifData" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                        <div class="panel p-4 rounded-xl">
+                            <img :src="previewImage" class="w-full rounded-lg shadow-lg">
+                        </div>
+                        <div class="panel p-6 rounded-xl overflow-hidden">
+                            <h3 class="font-bold text-accent text-lg mb-4 border-b pb-2 border-white/10">Metadata Report</h3>
+                            <div class="space-y-2 text-sm overflow-y-auto max-h-[400px]">
+                                <template x-for="(val, key) in exifData" :key="key">
+                                    <div class="flex justify-between py-1 border-b border-white/5">
+                                        <span class="text-muted capitalize" x-text="key"></span>
+                                        <span class="font-mono text-right truncate pl-4 text-accent" x-text="val"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'dict'" class="p-6 h-full flex flex-col items-center pt-20">
+                <div class="w-full max-w-2xl">
+                    <h1 class="text-3xl font-bold mb-6 text-center">Terminology Reference</h1>
+                    <div class="relative group">
+                        <input type="text" x-model="dictQuery" @keydown.enter="lookupTerm" placeholder="Enter term..." class="w-full bg-transparent text-2xl border-b-2 py-3 text-center focus:outline-none focus:border-accent transition-colors" style="border-color: var(--border)">
+                        <button @click="lookupTerm" class="absolute right-0 top-4 text-accent hover:scale-110 transition"><i class="ph-bold ph-magnifying-glass text-2xl"></i></button>
+                    </div>
+                    
+                    <div x-show="dictResult" class="mt-10 panel p-8 rounded-xl animate-fade-in shadow-2xl border border-white/5">
+                        <div class="flex justify-between items-baseline">
+                            <h2 class="text-3xl font-bold text-accent" x-text="dictResult?.word"></h2>
+                            <span class="font-mono opacity-50 text-lg" x-text="dictResult?.phonetic"></span>
+                        </div>
+                        
+                        <template x-for="meaning in dictResult?.meanings" :key="meaning.partOfSpeech">
+                            <div class="mt-6">
+                                <span class="px-2 py-0.5 rounded bg-accent/20 text-accent text-xs font-bold uppercase tracking-wider" x-text="meaning.partOfSpeech"></span>
+                                <ul class="mt-3 space-y-3 list-disc pl-5 opacity-90">
+                                    <template x-for="def in meaning.definitions.slice(0,3)" :key="def.definition">
+                                        <li x-text="def.definition" class="leading-relaxed"></li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
 
 <script>
-    // Set PDF Worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-    function app() {
-        return {
-            // State
-            isAuthenticated: false,
-            sidebarCollapsed: false,
-            activeTab: 'dashboard',
-            searchQuery: '',
-            
-            // Data Models
-            vaults: JSON.parse(localStorage.getItem('aether_vaults') || '{"Operation Alpha": {"notes": [], "created": "2024-01-01"}}'),
-            currentVault: localStorage.getItem('aether_current') || 'Operation Alpha',
-            keywords: JSON.parse(localStorage.getItem('aether_keywords') || '[]'),
-            attachments: JSON.parse(localStorage.getItem('aether_files') || '[]'),
-            activityLog: JSON.parse(localStorage.getItem('aether_log') || '[]'),
-            
-            // UI States
-            toasts: [],
-            navItems: [
-                { id: 'dashboard', label: 'Dashboard', icon: 'ph-bold ph-squares-four' },
-                { id: 'vaults', label: 'Vaults', icon: 'ph-bold ph-safe' },
-                { id: 'notes', label: 'Intel Notes', icon: 'ph-bold ph-notepad' },
-                { id: 'graph', label: 'Link Analysis', icon: 'ph-bold ph-graph' },
-                { id: 'tools', label: 'Extraction Tools', icon: 'ph-bold ph-wrench' },
-            ],
-            
-            // Inputs
-            newVaultName: '',
-            noteInput: '',
-            keywordInput: '',
-            extractionText: '',
-            extractedEntities: { emails: [], urls: [], ips: [], phones: [] },
-            pdfContent: '',
-            network: null, // Vis.js instance
-
-            get totalNotes() {
-                let count = 0;
-                for (let v in this.vaults) count += (this.vaults[v].notes || []).length;
-                return count;
-            },
-
-            get hasEntities() {
-                return Object.values(this.extractedEntities).some(arr => arr.length > 0);
-            },
-
-            init() {
-                this.$watch('vaults', val => localStorage.setItem('aether_vaults', JSON.stringify(val)));
-                this.$watch('keywords', val => {
-                    localStorage.setItem('aether_keywords', JSON.stringify(val));
-                    this.refreshGraph();
-                });
-                this.$watch('attachments', val => localStorage.setItem('aether_files', JSON.stringify(val)));
-                this.$watch('currentVault', val => localStorage.setItem('aether_current', val));
-                this.$watch('activityLog', val => localStorage.setItem('aether_log', JSON.stringify(val)));
-
-                // Check auth persistence (Simulated)
-                if (localStorage.getItem('aether_auth') === 'true') {
-                    this.isAuthenticated = true;
-                    setTimeout(() => this.refreshGraph(), 500);
-                }
-            },
-
-            // --- Authentication ---
-            login(method) {
-                // In a real app, integrate Firebase Auth here.
-                // For this demo, we simulate success.
-                this.isAuthenticated = true;
-                localStorage.setItem('aether_auth', 'true');
-                this.logActivity(`User login via ${method}`);
-                this.notify('success', 'Welcome Agent', 'System initialized successfully.');
-                
-                // Init Graph after UI renders
-                setTimeout(() => this.initGraph(), 100);
-            },
-
-            logout() {
-                this.isAuthenticated = false;
-                localStorage.removeItem('aether_auth');
-                this.notify('info', 'Logged Out', 'Session terminated.');
-            },
-
-            // --- Vault Management ---
-            createVault() {
-                if (!this.newVaultName.trim()) return this.notify('error', 'Error', 'Vault name required');
-                if (this.vaults[this.newVaultName]) return this.notify('error', 'Error', 'Vault exists');
-
-                this.vaults[this.newVaultName] = { notes: [], created: new Date().toISOString() };
-                this.currentVault = this.newVaultName;
-                this.newVaultName = '';
-                this.logActivity(`Created vault: ${this.currentVault}`);
-                this.notify('success', 'Vault Created', 'Secure container ready.');
-            },
-
-            switchVault(name) {
-                this.currentVault = name;
-                this.notify('info', 'Switched Vault', `Active: ${name}`);
-            },
-
-            deleteVault(name) {
-                if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
-                delete this.vaults[name];
-                // Force reactivity update
-                this.vaults = { ...this.vaults };
-                if (this.currentVault === name) this.currentVault = Object.keys(this.vaults)[0] || '';
-                this.logActivity(`Deleted vault: ${name}`);
-            },
-
-            // --- Notes ---
-            saveNote() {
-                if (!this.noteInput.trim()) return;
-                if (!this.vaults[this.currentVault]) return this.notify('error', 'Error', 'No active vault');
-
-                const note = {
-                    content: this.noteInput,
-                    timestamp: new Date().toISOString()
-                };
-
-                // Push to array (ensuring array exists)
-                if (!this.vaults[this.currentVault].notes) this.vaults[this.currentVault].notes = [];
-                this.vaults[this.currentVault].notes.push(note);
-                
-                // Force reactivity
-                this.vaults = { ...this.vaults }; 
-                
-                this.noteInput = '';
-                this.logActivity('Saved intelligence note');
-                this.notify('success', 'Note Saved', 'Encrypted and stored.');
-            },
-
-            insertMD(start, end = '') {
-                this.noteInput += `${start}text${end}`;
-            },
-
-            renderMarkdown(text) {
-                return marked.parse(text);
-            },
-
-            // --- Keywords & Graph ---
-            addKeyword() {
-                if (!this.keywordInput.trim()) return;
-                if (!this.keywords.includes(this.keywordInput)) {
-                    this.keywords.push(this.keywordInput);
-                    this.logActivity(`Added target: ${this.keywordInput}`);
-                }
-                this.keywordInput = '';
-            },
-
-            removeKeyword(index) {
-                this.keywords.splice(index, 1);
-            },
-
-            addKeywordFromEntity(item) {
-                if (!this.keywords.includes(item)) {
-                    this.keywords.push(item);
-                    this.notify('success', 'Target Added', item);
-                }
-            },
-
-            initGraph() {
-                const container = document.getElementById('network-graph');
-                if (!container) return;
-
-                const data = this.getGraphData();
-                const options = {
-                    nodes: { 
-                        shape: 'dot', 
-                        size: 20, 
-                        font: { color: '#ffffff', face: 'Inter' }, 
-                        borderWidth: 2,
-                        shadow: true 
-                    },
-                    edges: { 
-                        width: 1, 
-                        color: { color: '#334155', highlight: '#38bdf8' }, 
-                        smooth: { type: 'continuous' } 
-                    },
-                    physics: { 
-                        stabilization: false,
-                        barnesHut: { gravitationalConstant: -3000 } 
-                    },
-                    interaction: { hover: true }
-                };
-                
-                this.network = new vis.Network(container, data, options);
-            },
-
-            refreshGraph() {
-                if (this.network) {
-                    this.network.setData(this.getGraphData());
-                } else {
-                    this.initGraph();
-                }
-            },
-
-            getGraphData() {
-                // Creates a simulated network based on Vaults + Keywords
-                let nodes = [];
-                let edges = [];
-                let idCounter = 1;
-
-                // Central Node
-                nodes.push({ id: 0, label: 'Investigation', color: '#0ea5e9', size: 30 });
-
-                // Keywords nodes
-                this.keywords.forEach((k, i) => {
-                    const id = idCounter++;
-                    nodes.push({ id: id, label: k, color: '#6366f1' });
-                    edges.push({ from: 0, to: id });
-                });
-
-                // Link random nodes to simulate connections
-                if (nodes.length > 2) {
-                    for(let i=0; i< nodes.length; i++) {
-                        if(Math.random() > 0.7) {
-                             edges.push({ from: i, to: Math.floor(Math.random() * nodes.length) });
-                        }
-                    }
-                }
-
-                return { nodes, edges };
-            },
-
-            // --- Tools (PDF & Regex) ---
-            extractEntities() {
-                const text = this.extractionText;
-                this.extractedEntities = {
-                    emails: text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [],
-                    urls: text.match(/https?:\/\/[^\s]+/g) || [],
-                    ips: text.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || [],
-                    phones: text.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g) || []
-                };
-                
-                // Dedupe
-                for (let key in this.extractedEntities) {
-                    this.extractedEntities[key] = [...new Set(this.extractedEntities[key])];
-                }
-                
-                this.notify('info', 'Analysis Complete', `Found entities.`);
-            },
-
-            async handlePdfUpload(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                this.pdfContent = 'Extracting text... please wait...';
-                
-                try {
-                    const buffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument(buffer).promise;
-                    let fullText = '';
-                    
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        fullText += `--- Page ${i} ---\n` + textContent.items.map(item => item.str).join(' ') + '\n\n';
-                    }
-                    
-                    this.pdfContent = fullText;
-                    this.attachments.push({ name: file.name, date: new Date().toISOString() });
-                    this.notify('success', 'PDF Extracted', `${pdf.numPages} pages processed.`);
-                } catch (err) {
-                    console.error(err);
-                    this.pdfContent = 'Error extracting PDF. Ensure file is valid.';
-                    this.notify('error', 'Extraction Failed', err.message);
-                }
-            },
-
-            // --- System ---
-            notify(type, title, message) {
-                const id = Date.now();
-                let icon = 'ph-bold ph-info';
-                if (type === 'success') icon = 'ph-bold ph-check-circle text-green-400';
-                if (type === 'error') icon = 'ph-bold ph-warning-circle text-red-400';
-                
-                this.toasts.push({ id, type, title, message, icon, visible: true });
-                setTimeout(() => {
-                    this.toasts = this.toasts.filter(t => t.id !== id);
-                }, 4000);
-            },
-
-            logActivity(action) {
-                this.activityLog.push({ action, timestamp: new Date().toISOString() });
-            },
-            
-            performSearch() {
-                // Basic implementation
-                this.notify('info', 'Searching...', `Query: ${this.searchQuery}`);
-                // Expand logic to filter views based on search query
-            }
-        }
-    }
-</script>
-</body>
-</html>
+    // HARDCODED CONFIG (Your Keys)
+    const FB_CONFIG = {
+        apiKey: "AIzaSyD6F2TCqGB0HThGj0usvLHl30ZOphFRVkM",
+        authDomain: "osint-workbench-dbe48.firebaseapp.
