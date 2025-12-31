@@ -186,10 +186,21 @@ textarea,input{
   height:10px;
   border-radius:3px;
 }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  
 </style>
 </head>
 
 <body>
+<div id="lockscreen" style="position:fixed;inset:0;background:#020617;display:flex;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#0f172a;border:1px solid #1f2937;padding:22px;border-radius:16px;max-width:320px;width:90%;text-align:center">
+    <h2>🔒 OSINT Workbench</h2>
+    <p id="lockMsg">Enter password</p>
+    <input type="password" id="lockPass" placeholder="Password"><br><br>
+    <button onclick="unlock()">Unlock</button>
+  </div>
+</div>
+  
 <div class="app">
 <section id="pdfextract">
 <h2>Offline PDF Text Extractor</h2>
@@ -339,6 +350,43 @@ async function extractPdf(){
 
   document.getElementById("pdfOutput").value = out;
 }
+const PASSWORD_HASH_KEY = "osint_password_hash";
+
+function setPassword(){
+  const p = prompt("Set a new password:");
+  if(!p) return;
+  const hash = CryptoJS.SHA256(p).toString();
+  localStorage.setItem(PASSWORD_HASH_KEY, hash);
+  alert("Password set. Remember it!");
+}
+
+function unlock(){
+  const input = document.getElementById("lockPass").value;
+  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
+
+  if(!stored){
+    // first time setup
+    setPassword();
+    document.getElementById("lockscreen").style.display="none";
+    return;
+  }
+
+  const hash = CryptoJS.SHA256(input).toString();
+
+  if(hash === stored){
+    document.getElementById("lockscreen").style.display="none";
+  } else {
+    document.getElementById("lockMsg").innerText = "❌ Wrong password. Try again.";
+  }
+}
+
+// auto lock on load
+window.addEventListener("load", ()=>{
+  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
+  if(!stored){
+    document.getElementById("lockMsg").innerText = "Create password";
+  }
+});
 
 </div></div>
 
@@ -352,6 +400,9 @@ document.querySelectorAll('.navbtn').forEach(b=>{
   document.getElementById(b.dataset.target).classList.add('active');
  };
 });
+<div class="theme-toggle" onclick="localStorage.removeItem('osint_password_hash');location.reload();">
+  🚪 Logout / Reset password
+</div>
 
 /* Light / dark theme */
 function toggleTheme(){
