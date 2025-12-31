@@ -193,7 +193,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="panel p-6 rounded-xl border-l-4 border-accent">
                         <div class="text-xs uppercase font-bold opacity-60">Vault Status</div>
-                        <div class="text-4xl font-bold mt-2" x-text="savedNotes.length">0</div>
+                        <div class="text-4xl font-bold mt-2" x-text="savedNotes ? savedNotes.length : 0">0</div>
                         <div class="text-xs opacity-60 mt-1">Files Stored</div>
                     </div>
                     
@@ -317,6 +317,7 @@
             db: null,
 
             // Data Models
+            // KEY FIX: Ensure this is always an array to prevent "length" errors
             savedNotes: JSON.parse(localStorage.getItem('vantage_notes') || '[]'),
             currentNote: { id: null, title: '', content: '', updatedAt: null },
             
@@ -383,7 +384,7 @@
             quickCapture() {
                 if (!this.quickUrl) return;
                 
-                // Create the note
+                // Create the note object
                 const newNote = {
                     id: Date.now().toString(),
                     title: "Capture: " + this.quickUrl.substring(0, 20),
@@ -391,16 +392,14 @@
                     updatedAt: new Date().toISOString()
                 };
                 
-                // Add to array
-                this.savedNotes.unshift(newNote);
+                // KEY FIX: Use spread syntax to trigger reactivity updates instantly
+                this.savedNotes = [newNote, ...this.savedNotes];
                 
-                // Save
+                // Save and reset
                 this.persist();
-                
-                // Reset Input
                 this.quickUrl = '';
                 
-                // Notification (Simple Alert)
+                // Notification
                 alert("Captured to Notes!");
             },
 
@@ -414,8 +413,12 @@
                 this.currentNote.updatedAt = new Date().toISOString();
 
                 const idx = this.savedNotes.findIndex(n => n.id === this.currentNote.id);
-                if (idx > -1) this.savedNotes[idx] = {...this.currentNote};
-                else this.savedNotes.unshift({...this.currentNote});
+                // KEY FIX: Ensure reactivity when saving notes
+                if (idx > -1) {
+                    this.savedNotes[idx] = {...this.currentNote};
+                } else {
+                    this.savedNotes = [{...this.currentNote}, ...this.savedNotes];
+                }
 
                 this.persist();
             },
@@ -494,10 +497,7 @@
                     wayback: 'https://web.archive.org/'
                 };
                 
-                // If specific tool with query
-                if(type === 'virustotal' && query) {
-                     window.open(urls[type], '_blank');
-                } else if (type === 'virustotal') {
+                if(type === 'virustotal' && !query) {
                      window.open('https://www.virustotal.com/gui/home/upload', '_blank');
                 } else {
                      window.open(urls[type], '_blank');
