@@ -7,16 +7,19 @@
 
 <link rel="manifest" href="manifest.json">
 
-<!-- Service worker -->
+<!-- Service worker (optional) -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 
-<!-- Libraries -->
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+<!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
 <style>
 :root{
@@ -30,7 +33,6 @@ if ('serviceWorker' in navigator) {
   --shadow:rgba(0,0,0,.35);
 }
 
-/* LIGHT THEME */
 .light{
   --bg:#f3f4f6;
   --panel:#ffffff;
@@ -45,18 +47,36 @@ if ('serviceWorker' in navigator) {
 html,body{
   margin:0;
   height:100%;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto;
   background:var(--bg);
   color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+}
+
+/* LOGIN SCREEN */
+#loginScreen{
+  position:fixed;
+  inset:0;
+  background:#020617;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.login-box{
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:28px;
+  border-radius:16px;
+  text-align:center;
+  width:320px;
 }
 
 /* APP LAYOUT */
 .app{
   height:100vh;
-  display:flex;
+  display:none;
 }
 
-/* SIDEBAR */
 .sidebar{
   width:230px;
   background:var(--panel);
@@ -64,17 +84,14 @@ html,body{
   padding:14px 10px;
   display:flex;
   flex-direction:column;
-  box-shadow:4px 0 18px var(--shadow);
-  gap:12px;
+  gap:10px;
 }
 
 .logo{
-  font-size:18px;
   font-weight:700;
   text-align:center;
 }
 
-/* ICON GRID NAV */
 .navgrid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -82,125 +99,89 @@ html,body{
 }
 
 .navbtn{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  padding:10px 6px;
   background:var(--card);
-  border-radius:14px;
   border:1px solid var(--border);
+  padding:10px;
+  border-radius:14px;
   cursor:pointer;
-  transition:.25s;
-}
-.navbtn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px var(--shadow);
+  text-align:center;
 }
 .navbtn.active{
   background:var(--accent);
-  color:#020617;
+  color:black;
 }
 
-/* THEME TOGGLE */
-.theme-toggle{
-  margin-top:auto;
-  padding:10px;
-  text-align:center;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:var(--card);
-  cursor:pointer;
-}
-
-/* MAIN PANEL */
 .main{
   flex:1;
-  overflow-y:auto;
-  padding:18px;
+  overflow:auto;
+  padding:16px;
 }
 
-/* CONTENT SECTIONS */
 section{
   display:none;
   background:var(--card);
-  border-radius:18px;
   border:1px solid var(--border);
+  border-radius:18px;
   padding:16px;
 }
 section.active{display:block;}
 
-textarea,input{
+button{
+  padding:8px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
   background:var(--panel);
   color:var(--text);
-  border:1px solid var(--border);
+  cursor:pointer;
+}
+
+textarea,input{
+  width:100%;
+  background:var(--panel);
   border-radius:12px;
   padding:10px;
-  width:100%;
-  box-sizing:border-box;
+  border:1px solid var(--border);
+  color:var(--text);
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🔐 LOCKSCREEN -->
-<div id="lockscreen" style="position:fixed;inset:0;background:#020617;display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div style="background:#0f172a;border:1px solid #1f2937;padding:26px 22px;border-radius:18px;max-width:360px;width:92%;text-align:center">
-
-    <h2>🔒 OSINT Workbench</h2>
-    <p id="lockTitle" style="margin-top:6px;margin-bottom:18px"></p>
-
-    <!-- SETUP MODE -->
-    <div id="setupBox">
-      <input type="password" id="setPass1" placeholder="Create password" style="width:100%;margin-bottom:10px">
-      <input type="password" id="setPass2" placeholder="Confirm password" style="width:100%;margin-bottom:14px">
-      <button onclick="createPassword()">Save Password</button>
-      <p id="setupMsg" style="color:#f87171;margin-top:10px"></p>
-    </div>
-
-    <!-- LOGIN MODE -->
-    <div id="loginBox">
-      <input type="password" id="loginPass" placeholder="Enter password" style="width:100%;margin-bottom:14px">
-      <button onclick="unlock()">Unlock</button>
-      <p id="loginMsg" style="color:#f87171;margin-top:10px"></p>
-      <button onclick="biometricUnlock()">🔓 Unlock with biometrics</button>
-    </div>
-
+<!-- GOOGLE LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🕵 OSINT Workbench</h2>
+    <p>Sign in with Google to continue</p>
+    <button onclick="googleLogin()">🔑 Sign in with Google</button>
+    <p id="loginStatus" style="color:#9ca3af;margin-top:10px;"></p>
   </div>
 </div>
 
-<div class="app">
+<!-- APP -->
+<div class="app" id="app">
 
-<!-- SIDEBAR -->
 <div class="sidebar">
+  <div class="logo">OSINT Workbench</div>
 
-<div class="logo">🕵 OSINT Workbench</div>
+  <div id="userEmail" style="font-size:12px;text-align:center;color:var(--muted)"></div>
 
-<div class="navgrid">
-  <div class="navbtn active" data-target="vaults">📂 Vaults</div>
-  <div class="navbtn" data-target="pdfextract">📕 PDF</div>
+  <div class="navgrid">
+    <div class="navbtn active" data-target="vaults">📂 Vaults</div>
+    <div class="navbtn" data-target="pdfextract">📕 PDF</div>
+  </div>
+
+  <div class="navbtn" onclick="logout()">🚪 Logout</div>
+  <div class="navbtn" onclick="toggleTheme()">🌗 Theme</div>
 </div>
-<div class="theme-toggle" onclick="manualLock()">🔒 Lock / Login</div>
-<div class="theme-toggle" onclick="logout()">🚪 Logout</div>
 
-<div class="theme-toggle" onclick="toggleTheme()">🌗 Toggle light / dark</div>
-<div class="theme-toggle" onclick="resetPassword()">🔁 Reset password</div>
-</div>
-
-<!-- MAIN -->
 <div class="main">
 
 <section id="vaults" class="active">
-  <h2>Encrypted Vaults</h2>
+  <h2>Vaults</h2>
   <input id="newVaultName" placeholder="New vault name">
   <button onclick="createVault()">Create</button>
   <div id="vaultList"></div>
-
-  <br>
-  <button onclick="exportEncryptedBackup()">Export encrypted backup</button>
-  <input type="file" onchange="importEncryptedBackup(this.files[0])">
 </section>
 
 <section id="pdfextract">
@@ -214,234 +195,110 @@ textarea,input{
 </div>
 
 <script>
-/* ---------------- PASSWORD + ENCRYPTION CONSTANTS ---------------- */
+/* ---------------- FIREBASE CONFIG ---------------- */
+/* REPLACE WITH YOUR OWN VALUES */
 
-const PASSWORD_HASH_KEY = "osint_password_hash";
-const STORAGE_KEY = "osint_encrypted_vault";
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+};
 
-let SESSION_KEY = null;
-let VAULT = null;
+firebase.initializeApp(firebaseConfig);
 
-/* ---------------- AES ENCRYPTION CORE ---------------- */
+const auth = firebase.auth();
 
-function getKeyFromPassword(p){
-  return CryptoJS.SHA256(p).toString();
+/* ---------------- LOGIN LOGIC ---------------- */
+
+function googleLogin(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+  .then(result=>{
+    document.getElementById("loginStatus").innerText="Logged in";
+  })
+  .catch(e=>{
+    document.getElementById("loginStatus").innerText=e.message;
+  });
 }
 
-function encryptVault(obj, key){
-  return CryptoJS.AES.encrypt(JSON.stringify(obj), key).toString();
-}
-
-function decryptVault(cipher, key){
-  try{
-    const bytes = CryptoJS.AES.decrypt(cipher, key);
-    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-  }catch(e){
-    return null;
-  }
-}
-
-/* ---------------- LOCKSCREEN INITIALIZATION ---------------- */
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  const stored = localStorage.getItem(PASSWORD_HASH_KEY);
-
-  if(!stored){
-    setupMode();
-  } else {
-    loginMode();
-  }
-});
-
-function setupMode(){
-  document.getElementById("setupBox").style.display="block";
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("lockTitle").innerText="Create password";
-}
-
-function loginMode(){
-  document.getElementById("setupBox").style.display="none";
-  document.getElementById("loginBox").style.display="block";
-  document.getElementById("lockTitle").innerText="Enter password";
-}
-
-/* ---------------- CREATE PASSWORD ---------------- */
-
-function createPassword(){
-  const p1=document.getElementById("setPass1").value;
-  const p2=document.getElementById("setPass2").value;
-
-  if(p1!==p2){
-    document.getElementById("setupMsg").innerText="Passwords do not match";
-    return;
-  }
-
-  const hash=CryptoJS.SHA256(p1).toString();
-  localStorage.setItem(PASSWORD_HASH_KEY,hash);
-
-  SESSION_KEY=getKeyFromPassword(p1);
-  VAULT={vaults:{},current:"default"};
-
-  localStorage.setItem(STORAGE_KEY,encryptVault(VAULT,SESSION_KEY));
-
-  document.getElementById("lockscreen").style.display="none";
-}
-function manualLock(){
-  document.getElementById("lockscreen").style.display = "flex";
-}
 function logout(){
-  SESSION_KEY = null;
-  VAULT = null;
-  document.getElementById("lockscreen").style.display = "flex";
-  document.getElementById("loginPass").value = "";
+  auth.signOut();
 }
 
-/* ---------------- UNLOCK ---------------- */
-
-function unlock(){
-  const pass=document.getElementById("loginPass").value;
-  const storedHash=localStorage.getItem(PASSWORD_HASH_KEY);
-
-  if(CryptoJS.SHA256(pass).toString()!==storedHash){
-    document.getElementById("loginMsg").innerText="Incorrect password";
-    return;
+/* auth state observer */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("app").style.display="flex";
+    document.getElementById("userEmail").innerText=user.email;
+  } else {
+    document.getElementById("app").style.display="none";
+    document.getElementById("loginScreen").style.display="flex";
   }
-
-  const key=getKeyFromPassword(pass);
-  const encrypted=localStorage.getItem(STORAGE_KEY);
-
-  const data=decryptVault(encrypted,key);
-
-  if(!data){
-    document.getElementById("loginMsg").innerText="Decryption failed";
-    return;
-  }
-
-  SESSION_KEY=key;
-  VAULT=data;
-
-  document.getElementById("lockscreen").style.display="none";
-}
-
-/* ---------------- AUTO-LOCK ---------------- */
-
-let inactivityTimer=null;
-
-function resetInactivity(){
-  clearTimeout(inactivityTimer);
-  inactivityTimer=setTimeout(()=>{
-    document.getElementById("lockscreen").style.display="flex";
-  },5*60*1000);
-}
-
-["click","keydown","mousemove","touchstart"].forEach(e=>{
-  document.addEventListener(e,resetInactivity);
 });
-
-resetInactivity();
-
-/* ---------------- BIOMETRIC UNLOCK ---------------- */
-
-async function biometricUnlock(){
-  if(!navigator.credentials){
-    alert("Biometric unlock not supported");
-    return;
-  }
-
-  try{
-    await navigator.credentials.get({
-      publicKey:{challenge:new Uint8Array([1,2,3,4])}
-    });
-    document.getElementById("lockscreen").style.display="none";
-  }catch(e){
-    alert("Biometric unlock failed/denied");
-  }
-}
 
 /* ---------------- THEME ---------------- */
-
 function toggleTheme(){
   document.body.classList.toggle("light");
 }
 
-/* ---------------- SIDEBAR NAV ---------------- */
-
+/* ---------------- NAVIGATION ---------------- */
 document.querySelectorAll(".navbtn").forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));
-    document.querySelectorAll("section").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    document.getElementById(b.dataset.target).classList.add("active");
-  };
+  if(b.dataset.target){
+    b.onclick=()=>{
+      document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll("section").forEach(x=>x.classList.remove("active"));
+
+      b.classList.add("active");
+      document.getElementById(b.dataset.target).classList.add("active");
+    };
+  }
 });
 
-/* ---------------- VAULT LOGIC ---------------- */
+/* ---------------- LOCAL VAULT STORAGE ---------------- */
 
-function saveEncryptedVault(){
-  const cipher=encryptVault(VAULT,SESSION_KEY);
-  localStorage.setItem(STORAGE_KEY,cipher);
+let vaults = JSON.parse(localStorage.getItem("vaults") || "{}");
+let currentVault = "default";
+
+function saveVaults(){
+  localStorage.setItem("vaults", JSON.stringify(vaults));
+  renderVaults();
 }
 
 function createVault(){
-  const name=document.getElementById("newVaultName").value.trim();
-  if(!name) return;
-  VAULT.vaults[name]={notes:[]};
-  VAULT.current=name;
-  saveEncryptedVault();
-  renderVaults();
+  const n=document.getElementById("newVaultName").value.trim();
+  if(!n) return;
+  vaults[n]={notes:[]};
+  currentVault=n;
+  saveVaults();
 }
 
 function renderVaults(){
   const box=document.getElementById("vaultList");
   box.innerHTML="";
-  Object.keys(VAULT.vaults).forEach(v=>{
-    const b=document.createElement("button");
-    b.textContent=v+(v===VAULT.current?" ✓":"");
-    b.onclick=()=>{VAULT.current=v;saveEncryptedVault();renderVaults();};
-    box.appendChild(b);
+  Object.keys(vaults).forEach(v=>{
+    const btn=document.createElement("button");
+    btn.textContent=v+(v===currentVault?" ✓":"");
+    btn.onclick=()=>{currentVault=v;saveVaults()};
+    box.appendChild(btn);
   });
 }
+renderVaults();
 
-/* ---------------- ENCRYPTED BACKUP ---------------- */
-
-function exportEncryptedBackup(){
-  const blob=new Blob([localStorage.getItem(STORAGE_KEY)],{type:"text/plain"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="osint_vault.enc";
-  a.click();
-}
-
-function importEncryptedBackup(file){
-  const reader=new FileReader();
-  reader.onload=e=>{
-    localStorage.setItem(STORAGE_KEY,e.target.result);
-    alert("Backup imported. Reload and unlock.");
-    location.reload();
-  };
-  reader.readAsText(file);
-}
-
-/* ---------------- RESET PASSWORD ---------------- */
-
-function resetPassword(){
-  localStorage.clear();
-  location.reload();
-}
-
-/* ---------------- PDF EXTRACT ---------------- */
-
+/* ---------------- PDF EXTRACTION ---------------- */
 async function extractPdf(){
   const file=document.getElementById("pdfFile").files[0];
   if(!file) return;
+
   const array=await file.arrayBuffer();
   const pdf=await pdfjsLib.getDocument({data:array}).promise;
+
   let out="";
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
     const text=await page.getTextContent();
     out+=text.items.map(t=>t.str).join(" ")+"\n\n";
   }
+
   document.getElementById("pdfOutput").value=out;
 }
 </script>
